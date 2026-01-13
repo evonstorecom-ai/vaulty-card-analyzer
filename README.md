@@ -41,7 +41,7 @@ python vaulty_card_analyzer.py card.webp -q
 export ANTHROPIC_API_KEY=your_anthropic_key
 export TELEGRAM_BOT_TOKEN=your_telegram_bot_token
 
-python telegram_bot.py
+python main.py
 ```
 
 ### Railway Deployment
