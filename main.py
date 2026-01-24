@@ -1,13 +1,16 @@
 #!/usr/bin/env python3
 """
 VAULTY CARD ANALYZER - BOT TELEGRAM
-Version Française avec Promotion
+Version Française avec Promotion + Prix Temps Réel
 © 2025 Vaulty Protocol 🇨🇭
 """
 
 import os
+import re
 import base64
 import logging
+import urllib.parse
+import aiohttp
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, MessageHandler, ContextTypes, filters
 import anthropic
@@ -85,6 +88,67 @@ Réponds EN FRANÇAIS avec ce format:
 ---
 🔐 *Analyse Vaulty Protocol • vaultyprotocol.tech*
 """
+
+
+def generate_search_urls(card_name: str, set_name: str, game: str) -> dict:
+    """Génère des URLs de recherche pour vérifier les prix réels"""
+    # Nettoyer le nom de la carte pour la recherche
+    search_query = f"{card_name} {set_name}".strip()
+    encoded_query = urllib.parse.quote(search_query)
+
+    urls = {
+        "ebay_sold": f"https://www.ebay.fr/sch/i.html?_nkw={encoded_query}&LH_Complete=1&LH_Sold=1",
+        "ebay_active": f"https://www.ebay.fr/sch/i.html?_nkw={encoded_query}",
+    }
+
+    # URLs spécifiques selon le jeu
+    game_lower = game.lower() if game else ""
+
+    if "pokemon" in game_lower or "pokémon" in game_lower:
+        urls["cardmarket"] = f"https://www.cardmarket.com/fr/Pokemon/Products/Search?searchString={encoded_query}"
+        urls["tcgplayer"] = f"https://www.tcgplayer.com/search/pokemon/product?q={encoded_query}"
+    elif "one piece" in game_lower:
+        urls["cardmarket"] = f"https://www.cardmarket.com/fr/OnePiece/Products/Search?searchString={encoded_query}"
+        urls["tcgplayer"] = f"https://www.tcgplayer.com/search/one-piece-card-game/product?q={encoded_query}"
+    elif "yu-gi-oh" in game_lower or "yugioh" in game_lower:
+        urls["cardmarket"] = f"https://www.cardmarket.com/fr/YuGiOh/Products/Search?searchString={encoded_query}"
+        urls["tcgplayer"] = f"https://www.tcgplayer.com/search/yugioh/product?q={encoded_query}"
+    elif "magic" in game_lower:
+        urls["cardmarket"] = f"https://www.cardmarket.com/fr/Magic/Products/Search?searchString={encoded_query}"
+        urls["tcgplayer"] = f"https://www.tcgplayer.com/search/magic/product?q={encoded_query}"
+    else:
+        urls["cardmarket"] = f"https://www.cardmarket.com/fr/search?searchString={encoded_query}"
+        urls["tcgplayer"] = f"https://www.tcgplayer.com/search/all/product?q={encoded_query}"
+
+    return urls
+
+
+def extract_card_info(analysis_text: str) -> dict:
+    """Extrait les informations de la carte depuis l'analyse Claude"""
+    info = {
+        "game": "",
+        "card_name": "",
+        "set_name": "",
+        "number": "",
+        "rarity": ""
+    }
+
+    lines = analysis_text.split('\n')
+    for line in lines:
+        line_lower = line.lower()
+        if "• jeu:" in line_lower or "• jeu :" in line_lower:
+            info["game"] = line.split(":", 1)[-1].strip()
+        elif "• carte:" in line_lower or "• carte :" in line_lower:
+            info["card_name"] = line.split(":", 1)[-1].strip()
+        elif "• set:" in line_lower or "• set :" in line_lower:
+            info["set_name"] = line.split(":", 1)[-1].strip()
+        elif "• numéro:" in line_lower or "• numéro :" in line_lower:
+            info["number"] = line.split(":", 1)[-1].strip()
+        elif "• rareté:" in line_lower or "• rareté :" in line_lower:
+            info["rarity"] = line.split(":", 1)[-1].strip()
+
+    return info
+
 
 async def analyze_card(image_bytes: bytes) -> str:
     """Analyse une carte via Claude API"""
@@ -411,13 +475,22 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         else:
             await update.message.reply_text(result, parse_mode="Markdown")
 
+        # Extraire les infos de la carte pour générer les URLs de recherche
+        card_info = extract_card_info(result)
+        search_urls = generate_search_urls(
+            card_info.get("card_name", ""),
+            card_info.get("set_name", ""),
+            card_info.get("game", "")
+        )
+
         # Message avec liens pour vérifier les prix réels
-        price_check_message = """
+        card_display = card_info.get("card_name", "cette carte")
+        price_check_message = f"""
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 🔎 **VÉRIFIEZ LE PRIX RÉEL**
 
-Cliquez ci-dessous pour voir les **dernières ventes** de cartes similaires:
+Cliquez ci-dessous pour voir les **ventes récentes** de **{card_display}**:
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
@@ -434,13 +507,16 @@ Certification Vaulty Protocol:
 """
         keyboard = [
             [
-                InlineKeyboardButton("🔍 eBay Sold", url="https://www.ebay.fr/sch/i.html?_nkw=&LH_Complete=1&LH_Sold=1"),
-                InlineKeyboardButton("🛒 CardMarket", url="https://www.cardmarket.com/"),
+                InlineKeyboardButton("🔍 eBay SOLD (Prix réels)", url=search_urls["ebay_sold"]),
+            ],
+            [
+                InlineKeyboardButton("🛒 CardMarket", url=search_urls.get("cardmarket", "https://www.cardmarket.com/")),
+                InlineKeyboardButton("🛒 TCGPlayer", url=search_urls.get("tcgplayer", "https://www.tcgplayer.com/")),
             ],
             [InlineKeyboardButton("🔐 Certifier cette carte", url="https://vaultyprotocol.tech/pass-services/")],
             [
                 InlineKeyboardButton("💰 Nos tarifs", url="https://vaultyprotocol.tech/pass-services/"),
-                InlineKeyboardButton("🛒 Marketplace", url="https://vaultyprotocol.tech/marketplace/"),
+                InlineKeyboardButton("🌐 Vaulty", url="https://vaultyprotocol.tech/"),
             ],
         ]
         await update.message.reply_text(
