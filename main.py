@@ -137,7 +137,20 @@ def extract_card_info(analysis_text: str) -> dict:
     lines = analysis_text.split('\n')
     for line in lines:
         line_lower = line.lower()
-        if "• jeu:" in line_lower or "• jeu :" in line_lower:
+
+        # Nouveau format avec emojis
+        if "📦 set:" in line_lower or "📦 set :" in line_lower:
+            info["set_name"] = line.split(":", 1)[-1].strip()
+        elif "🔢 numéro:" in line_lower or "🔢 numéro :" in line_lower:
+            info["number"] = line.split(":", 1)[-1].strip()
+        elif "✨ rareté:" in line_lower or "✨ rareté :" in line_lower:
+            info["rarity"] = line.split(":", 1)[-1].strip()
+        elif "🌍 langue:" in line_lower:
+            pass  # On ignore la langue
+        elif "🏷️ gradée:" in line_lower:
+            pass  # On ignore le grade
+        # Ancien format (compatibilité)
+        elif "• jeu:" in line_lower or "• jeu :" in line_lower:
             info["game"] = line.split(":", 1)[-1].strip()
         elif "• carte:" in line_lower or "• carte :" in line_lower:
             info["card_name"] = line.split(":", 1)[-1].strip()
@@ -147,6 +160,26 @@ def extract_card_info(analysis_text: str) -> dict:
             info["number"] = line.split(":", 1)[-1].strip()
         elif "• rareté:" in line_lower or "• rareté :" in line_lower:
             info["rarity"] = line.split(":", 1)[-1].strip()
+        # Extraire le nom du joueur/personnage depuis le header
+        elif line.startswith("🎴 **") and "**" in line[5:]:
+            # Format: 🎴 **NOM DU JOUEUR**
+            name = line.replace("🎴 **", "").replace("**", "").strip()
+            if name:
+                info["card_name"] = name
+
+    # Détecter le jeu depuis le set si pas trouvé
+    if not info["game"] and info["set_name"]:
+        set_lower = info["set_name"].lower()
+        if "pokemon" in set_lower or "pokémon" in set_lower:
+            info["game"] = "Pokemon"
+        elif "one piece" in set_lower or "op01" in set_lower or "op02" in set_lower:
+            info["game"] = "One Piece TCG"
+        elif "prizm" in set_lower or "topps" in set_lower or "fleer" in set_lower or "panini" in set_lower:
+            info["game"] = "Sports"
+        elif "yu-gi-oh" in set_lower or "lob" in set_lower:
+            info["game"] = "Yu-Gi-Oh"
+        elif "magic" in set_lower or "mtg" in set_lower:
+            info["game"] = "Magic"
 
     return info
 
