@@ -347,85 +347,53 @@ def estimate_all_grades(
 def format_price_response(estimates: dict) -> str:
     """
     Formate les estimations pour le bot Telegram (Markdown)
-    Affiche le niveau de confiance clairement
+    Format compact avec devise CHF
     """
-    lines = []
-
     # Déterminer la source principale
     sources = [e.source for e in estimates.values() if e.source != "unavailable"]
 
+    if not sources:
+        return """
+💰 **PRIX NON DISPONIBLE**
+⚠️ Vérifiez sur eBay Sold
+"""
+
+    # Déterminer confiance et icône
     if "verified" in sources:
-        avg_confidence = 90
-        lines.append("━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-        lines.append("")
-        lines.append("💰 **PRIX DE MARCHÉ** ✅ Prix vérifiés")
-        lines.append("")
+        confidence = 90
+        header = "💰 **ESTIMATION** ✅ (90%)"
     elif "similar" in sources:
-        avg_confidence = 70
-        lines.append("━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-        lines.append("")
-        lines.append("💰 **PRIX DE MARCHÉ** 🟡 Carte similaire")
-        lines.append("")
-    elif "algorithm" in sources:
-        avg_confidence = 55
-        lines.append("━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-        lines.append("")
-        lines.append("💰 **PRIX ESTIMÉS** ⚠️ Calcul algorithmique")
-        lines.append("_Vérifiez sur eBay Sold !_")
-        lines.append("")
+        confidence = 70
+        header = "💰 **ESTIMATION** 🟡 (70%)"
     else:
-        return """━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        confidence = 55
+        header = "💰 **ESTIMATION** ⚠️ (55%)"
 
-💰 **ESTIMATION NON DISPONIBLE**
+    lines = [header]
 
-⚠️ Nous n'avons pas assez de données pour cette carte.
-
-🔎 **Pour connaître le prix réel:**
-1. Recherchez sur eBay Sold
-2. Consultez CardMarket (Europe)
-3. Vérifiez PSA Auction Prices
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━"""
-
-    # Afficher les prix par grade
-    grade_display = {
-        "RAW": ("📦", "RAW (non gradée)"),
-        "PSA_10": ("🏆", "PSA 10 (Gem Mint)"),
-        "PSA_9": ("🥇", "PSA 9 (Mint)"),
-        "PSA_8": ("🥈", "PSA 8 (NM-MT)"),
-        "PSA_7": ("🥉", "PSA 7 (NM)"),
-        "BGS_10": ("💎", "BGS 10 (Pristine)"),
-        "BGS_9.5": ("💎", "BGS 9.5 (Gem Mint)")
+    # Format compact pour les prix
+    grade_labels = {
+        "RAW": "RAW",
+        "PSA_10": "PSA 10",
+        "PSA_9": "PSA 9",
+        "PSA_8": "PSA 8",
     }
 
-    grade_order = ["RAW", "PSA_10", "PSA_9", "PSA_8", "PSA_7"]
+    grade_order = ["RAW", "PSA_9", "PSA_10"]
 
     for grade in grade_order:
         if grade not in estimates:
             continue
         est = estimates[grade]
-        emoji, label = grade_display.get(grade, ("•", grade))
+        label = grade_labels.get(grade, grade)
 
         if est.min_price is not None and est.max_price is not None:
-            lines.append(f"{emoji} **{label}**: **${est.min_price:,}** - **${est.max_price:,}**")
-        else:
-            lines.append(f"{emoji} **{label}**: _Non disponible_")
+            lines.append(f"• {label}: **{est.min_price}-{est.max_price} CHF**")
 
-    lines.append("")
-    lines.append(f"📊 Confiance: {avg_confidence}%")
-
-    # Date de vérification si disponible
-    verified_est = next((e for e in estimates.values() if e.last_verified), None)
-    if verified_est and verified_est.last_verified:
-        lines.append(f"📅 Dernière vérification: {verified_est.last_verified}")
-
-    # Note si carte similaire
-    similar_est = next((e for e in estimates.values() if e.source == "similar"), None)
-    if similar_est and similar_est.notes:
-        lines.append(f"📝 {similar_est.notes}")
-
-    lines.append("")
-    lines.append("━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+    # Avertissement si confiance basse
+    if confidence < 70:
+        lines.append("")
+        lines.append("⚠️ _Vérifiez sur eBay Sold_")
 
     return "\n".join(lines)
 
