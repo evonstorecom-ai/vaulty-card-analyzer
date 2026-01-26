@@ -900,6 +900,53 @@ _Base de prix Vaulty Protocol_
     await update.message.reply_text(response, parse_mode="Markdown")
 
 
+async def adminhelp_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Commande admin: /adminhelp - Affiche l'aide admin"""
+    user_id = update.effective_user.id
+    if not is_admin(user_id):
+        await update.message.reply_text("⛔ Commande réservée aux administrateurs.")
+        return
+
+    help_text = """
+👑 **MENU ADMIN - VAULTY CARD ANALYZER**
+━━━━━━━━━━━━━━━━━━━━━
+
+**📊 STATISTIQUES**
+`/dbstats` → Voir les stats de la base
+`/listprices` → Lister toutes les cartes
+`/oldprices` → Prix > 3 mois à mettre à jour
+
+**🔍 RECHERCHE**
+`/searchdb [mot]` → Rechercher une carte
+Exemple: `/searchdb charizard`
+
+**➕ AJOUTER UNE CARTE**
+`/newcard id | nom | jeu | set | numéro`
+Exemple:
+`/newcard pokemon_mew_base_151 | Mew | Pokemon | Base Set | 151`
+
+**💰 AJOUTER UN PRIX**
+`/addprice [id] [grade] [min] [max]`
+Grades: RAW, PSA_7, PSA_8, PSA_9, PSA_10
+Exemples:
+`/addprice pokemon_mew_base_151 RAW 50 100`
+`/addprice pokemon_mew_base_151 PSA_10 500 800`
+
+━━━━━━━━━━━━━━━━━━━━━
+
+**💡 WORKFLOW TYPIQUE:**
+1. `/searchdb pikachu` → Vérifier si existe
+2. `/newcard ...` → Créer si n'existe pas
+3. `/addprice ... RAW ...` → Ajouter prix RAW
+4. `/addprice ... PSA_10 ...` → Ajouter prix PSA 10
+5. `/dbstats` → Vérifier les stats
+
+━━━━━━━━━━━━━━━━━━━━━
+🔐 _Admin Vaulty Protocol_
+"""
+    await update.message.reply_text(help_text, parse_mode="Markdown")
+
+
 def main() -> None:
     """Lance le bot"""
     if not TELEGRAM_BOT_TOKEN:
@@ -926,6 +973,7 @@ def main() -> None:
     app.add_handler(CommandHandler("contact", contact_command))
 
     # Commandes admin (prix vérifiés)
+    app.add_handler(CommandHandler("adminhelp", adminhelp_command))
     app.add_handler(CommandHandler("addprice", addprice_command))
     app.add_handler(CommandHandler("newcard", newcard_command))
     app.add_handler(CommandHandler("listprices", listprices_command))
