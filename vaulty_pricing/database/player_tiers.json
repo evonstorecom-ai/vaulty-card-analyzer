@@ -1,0 +1,303 @@
+{
+  "_metadata": {
+    "version": "1.0.0",
+    "last_updated": "2024-10-01",
+    "description": "Player tier classifications for price calculations"
+  },
+  "basketball": {
+    "GOAT": [
+      "Michael Jordan",
+      "LeBron James",
+      "Kareem Abdul-Jabbar",
+      "Magic Johnson",
+      "Larry Bird"
+    ],
+    "legend": [
+      "Kobe Bryant",
+      "Shaquille O'Neal",
+      "Tim Duncan",
+      "Hakeem Olajuwon",
+      "Scottie Pippen",
+      "Charles Barkley",
+      "Karl Malone",
+      "John Stockton",
+      "Patrick Ewing",
+      "David Robinson",
+      "Isiah Thomas",
+      "Julius Erving",
+      "Moses Malone",
+      "Wilt Chamberlain",
+      "Bill Russell",
+      "Oscar Robertson",
+      "Jerry West",
+      "Dirk Nowitzki",
+      "Kevin Garnett",
+      "Allen Iverson",
+      "Dwyane Wade",
+      "Ray Allen",
+      "Paul Pierce"
+    ],
+    "superstar": [
+      "Stephen Curry",
+      "Kevin Durant",
+      "Giannis Antetokounmpo",
+      "Nikola Jokic",
+      "Luka Doncic",
+      "Joel Embiid",
+      "Jayson Tatum",
+      "Ja Morant",
+      "Anthony Edwards",
+      "Shai Gilgeous-Alexander",
+      "Victor Wembanyama",
+      "Damian Lillard",
+      "James Harden",
+      "Russell Westbrook",
+      "Kawhi Leonard",
+      "Paul George",
+      "Chris Paul",
+      "Kyrie Irving",
+      "Anthony Davis",
+      "Jimmy Butler",
+      "Devin Booker"
+    ],
+    "star": [
+      "Trae Young",
+      "Zion Williamson",
+      "Donovan Mitchell",
+      "Bam Adebayo",
+      "Jalen Brunson",
+      "Tyrese Haliburton",
+      "Tyrese Maxey",
+      "Paolo Banchero",
+      "Chet Holmgren",
+      "LaMelo Ball",
+      "Brandon Ingram",
+      "De'Aaron Fox",
+      "Domantas Sabonis",
+      "Karl-Anthony Towns",
+      "Jaren Jackson Jr.",
+      "Scottie Barnes",
+      "Franz Wagner",
+      "Evan Mobley"
+    ],
+    "starter": [
+      "Chris Bosh",
+      "Carmelo Anthony",
+      "Blake Griffin",
+      "Derrick Rose",
+      "John Wall",
+      "DeMar DeRozan",
+      "CJ McCollum",
+      "Khris Middleton",
+      "Jrue Holiday",
+      "Pascal Siakam",
+      "Fred VanVleet",
+      "OG Anunoby",
+      "Mikal Bridges",
+      "Dejounte Murray"
+    ],
+    "role_player": [
+      "Kyle Kuzma",
+      "Jordan Clarkson",
+      "Marcus Smart",
+      "Robert Williams",
+      "Brook Lopez",
+      "Bobby Portis"
+    ],
+    "bust": [
+      "Darko Milicic",
+      "Kwame Brown",
+      "Anthony Bennett",
+      "Hasheem Thabeet",
+      "Michael Olowokandi",
+      "Greg Oden",
+      "Markelle Fultz",
+      "Marvin Bagley III"
+    ]
+  },
+  "football": {
+    "GOAT": [
+      "Tom Brady",
+      "Jerry Rice",
+      "Joe Montana",
+      "Jim Brown",
+      "Lawrence Taylor",
+      "Walter Payton",
+      "Peyton Manning"
+    ],
+    "legend": [
+      "Aaron Rodgers",
+      "Drew Brees",
+      "Brett Favre",
+      "John Elway",
+      "Dan Marino",
+      "Barry Sanders",
+      "Emmitt Smith",
+      "Randy Moss",
+      "Terrell Owens",
+      "Calvin Johnson",
+      "Ed Reed",
+      "Ray Lewis",
+      "Deion Sanders",
+      "Reggie White",
+      "Bruce Smith",
+      "Tony Gonzalez",
+      "Rob Gronkowski"
+    ],
+    "superstar": [
+      "Patrick Mahomes",
+      "Josh Allen",
+      "Lamar Jackson",
+      "Joe Burrow",
+      "Justin Herbert",
+      "Jalen Hurts",
+      "Travis Kelce",
+      "Tyreek Hill",
+      "Justin Jefferson",
+      "Ja'Marr Chase",
+      "CeeDee Lamb",
+      "Davante Adams",
+      "Micah Parsons",
+      "Nick Bosa",
+      "T.J. Watt",
+      "Aaron Donald",
+      "Derrick Henry",
+      "Jonathan Taylor"
+    ],
+    "star": [
+      "Trevor Lawrence",
+      "Tua Tagovailoa",
+      "C.J. Stroud",
+      "Bryce Young",
+      "Caleb Williams",
+      "A.J. Brown",
+      "Stefon Diggs",
+      "DK Metcalf",
+      "Amon-Ra St. Brown",
+      "George Kittle",
+      "Mark Andrews",
+      "Saquon Barkley",
+      "Christian McCaffrey",
+      "Bijan Robinson"
+    ],
+    "bust": [
+      "JaMarcus Russell",
+      "Ryan Leaf",
+      "Johnny Manziel",
+      "Trent Richardson"
+    ]
+  },
+  "soccer": {
+    "GOAT": [
+      "Lionel Messi",
+      "Cristiano Ronaldo",
+      "Diego Maradona",
+      "Pelé"
+    ],
+    "legend": [
+      "Zinedine Zidane",
+      "Ronaldinho",
+      "Ronaldo Nazario",
+      "Thierry Henry",
+      "Andrés Iniesta",
+      "Xavi",
+      "Andrea Pirlo",
+      "Paolo Maldini",
+      "Franz Beckenbauer",
+      "Johan Cruyff",
+      "Neymar"
+    ],
+    "superstar": [
+      "Kylian Mbappé",
+      "Erling Haaland",
+      "Vinicius Junior",
+      "Jude Bellingham",
+      "Kevin De Bruyne",
+      "Mohamed Salah",
+      "Robert Lewandowski",
+      "Karim Benzema",
+      "Luka Modric"
+    ],
+    "star": [
+      "Bukayo Saka",
+      "Phil Foden",
+      "Pedri",
+      "Gavi",
+      "Jamal Musiala",
+      "Florian Wirtz",
+      "Lamine Yamal",
+      "Endrick"
+    ]
+  },
+  "pokemon": {
+    "GOAT": [
+      "Charizard",
+      "Pikachu"
+    ],
+    "legend": [
+      "Mewtwo",
+      "Blastoise",
+      "Venusaur",
+      "Lugia",
+      "Ho-Oh"
+    ],
+    "superstar": [
+      "Gengar",
+      "Dragonite",
+      "Alakazam",
+      "Gyarados",
+      "Rayquaza",
+      "Umbreon",
+      "Espeon"
+    ],
+    "star": [
+      "Eevee",
+      "Snorlax",
+      "Machamp",
+      "Arcanine",
+      "Ninetales"
+    ]
+  },
+  "baseball": {
+    "GOAT": [
+      "Babe Ruth",
+      "Willie Mays",
+      "Hank Aaron",
+      "Mickey Mantle",
+      "Ted Williams"
+    ],
+    "legend": [
+      "Mike Trout",
+      "Ken Griffey Jr.",
+      "Derek Jeter",
+      "Albert Pujols",
+      "Jackie Robinson",
+      "Lou Gehrig",
+      "Ty Cobb",
+      "Honus Wagner",
+      "Sandy Koufax",
+      "Nolan Ryan",
+      "Greg Maddux",
+      "Pedro Martinez",
+      "Mariano Rivera",
+      "Cal Ripken Jr."
+    ],
+    "superstar": [
+      "Shohei Ohtani",
+      "Ronald Acuña Jr.",
+      "Mookie Betts",
+      "Juan Soto",
+      "Freddie Freeman",
+      "Trea Turner",
+      "Corey Seager",
+      "Aaron Judge"
+    ],
+    "star": [
+      "Julio Rodriguez",
+      "Bobby Witt Jr.",
+      "Gunnar Henderson",
+      "Corbin Carroll",
+      "Elly De La Cruz"
+    ]
+  }
+}
