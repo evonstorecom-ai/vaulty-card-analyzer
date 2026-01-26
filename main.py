@@ -173,6 +173,88 @@ def extract_card_info(analysis_text: str) -> dict:
     return info
 
 
+def lookup_verified_prices(card_info: dict) -> str | None:
+    """
+    Recherche les prix vérifiés dans la base de données.
+    Retourne un message formaté si trouvé, None sinon.
+    """
+    if not PRICING_AVAILABLE:
+        return None
+
+    game = card_info.get("game", "")
+    card_name = card_info.get("card_name", "")
+    set_name = card_info.get("set_name", "")
+    number = card_info.get("number", "")
+
+    # Recherche dans la base
+    card_data, score = db_manager.find_card_fuzzy(game, card_name, set_name, number)
+
+    if not card_data or score < 0.5:
+        return None
+
+    # Formater les prix
+    prices = card_data.get("prices", {})
+    if not prices:
+        return None
+
+    # Déterminer le niveau de confiance
+    if score >= 0.8:
+        confidence = 90
+        confidence_text = "✅ Prix vérifiés (correspondance exacte)"
+    elif score >= 0.6:
+        confidence = 70
+        confidence_text = "🟡 Prix estimés (carte similaire)"
+    else:
+        confidence = 50
+        confidence_text = "🟠 Prix approximatifs"
+
+    lines = [
+        "━━━━━━━━━━━━━━━━━━━━━━━━━━━",
+        "",
+        f"💰 **PRIX DE MARCHÉ** {confidence_text}",
+        "",
+    ]
+
+    # Ordre d'affichage des grades
+    grade_display = {
+        "RAW": "📦 **RAW** (non gradée)",
+        "PSA_10": "🏆 **PSA 10** (Gem Mint)",
+        "PSA_9": "🥇 **PSA 9** (Mint)",
+        "PSA_8": "🥈 **PSA 8** (NM-MT)",
+        "PSA_7": "🥉 **PSA 7** (NM)",
+        "PSA_6": "📊 **PSA 6** (EX-MT)",
+        "BGS_10": "💎 **BGS 10** (Pristine)",
+        "BGS_9.5": "💎 **BGS 9.5** (Gem Mint)",
+        "BGS_9": "💎 **BGS 9** (Mint)",
+    }
+
+    grade_order = ["RAW", "PSA_10", "PSA_9", "PSA_8", "PSA_7", "PSA_6", "BGS_10", "BGS_9.5", "BGS_9"]
+
+    for grade in grade_order:
+        if grade in prices:
+            price_data = prices[grade]
+            min_p = price_data.get("min", 0)
+            max_p = price_data.get("max", 0)
+            label = grade_display.get(grade, grade)
+            lines.append(f"{label}: **${min_p:,}** - **${max_p:,}**")
+
+    lines.append("")
+    lines.append(f"📊 Confiance: {confidence}%")
+
+    last_verified = card_data.get("last_verified", "")
+    if last_verified:
+        lines.append(f"📅 Dernière vérification: {last_verified}")
+
+    notes = card_data.get("notes", "")
+    if notes:
+        lines.append(f"📝 Note: {notes}")
+
+    lines.append("")
+    lines.append("━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+
+    return "\n".join(lines)
+
+
 async def analyze_card(image_bytes: bytes) -> str:
     """Analyse une carte via Claude API"""
     if not ANTHROPIC_API_KEY:
@@ -491,15 +573,29 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         result = await analyze_card(bytes(image_bytes))
         await waiting.delete()
 
-        # Envoyer résultat
-        if len(result) > 4000:
-            for i in range(0, len(result), 4000):
-                await update.message.reply_text(result[i:i+4000], parse_mode="Markdown")
-        else:
-            await update.message.reply_text(result, parse_mode="Markdown")
-
-        # Extraire les infos de la carte pour générer les URLs de recherche
+        # Extraire les infos de la carte
         card_info = extract_card_info(result)
+
+        # Rechercher les prix vérifiés dans la base
+        verified_prices_msg = lookup_verified_prices(card_info)
+
+        # Construire le message final
+        if verified_prices_msg:
+            # Retirer la section prix de Claude (estimations) et remplacer par prix vérifiés
+            # On garde l'identification et l'évaluation de l'état
+            final_result = result
+            # Ajouter les prix vérifiés à la fin
+            final_result = final_result + "\n\n" + verified_prices_msg
+        else:
+            # Pas de prix vérifié, ajouter un avertissement
+            final_result = result + "\n\n⚠️ _Prix non vérifiés - Consultez eBay Sold pour les prix réels_"
+
+        # Envoyer résultat
+        if len(final_result) > 4000:
+            for i in range(0, len(final_result), 4000):
+                await update.message.reply_text(final_result[i:i+4000], parse_mode="Markdown")
+        else:
+            await update.message.reply_text(final_result, parse_mode="Markdown")
         search_urls = generate_search_urls(
             card_info.get("card_name", ""),
             card_info.get("set_name", ""),
