@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 VAULTY CARD ANALYZER - BOT TELEGRAM
-Version Française avec Promotion + Prix Temps Réel
+Version Française avec Promotion + Base de Prix Vérifiés
 © 2025 Vaulty Protocol 🇨🇭
 """
 
@@ -10,18 +10,41 @@ import re
 import base64
 import logging
 import urllib.parse
-import aiohttp
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, MessageHandler, ContextTypes, filters
 import anthropic
+
+# Import du système de prix
+try:
+    from database import db_manager
+    import price_estimator
+    PRICING_AVAILABLE = True
+except ImportError as e:
+    print(f"⚠️ Système de prix non disponible: {e}")
+    PRICING_AVAILABLE = False
 
 # Configuration
 TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "")
 ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
 MODEL = "claude-sonnet-4-20250514"
 
+# Admin IDs (séparés par des virgules dans la variable d'environnement)
+ADMIN_IDS = set()
+admin_env = os.environ.get("ADMIN_USER_IDS", "")
+if admin_env:
+    for aid in admin_env.split(","):
+        try:
+            ADMIN_IDS.add(int(aid.strip()))
+        except ValueError:
+            pass
+
 logging.basicConfig(format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+
+def is_admin(user_id: int) -> bool:
+    """Vérifie si l'utilisateur est admin"""
+    return user_id in ADMIN_IDS
 
 # Prompt d'analyse en FRANÇAIS - Focus sur identification précise
 ANALYSIS_PROMPT = """Tu es un expert certifié en cartes à collectionner avec 20+ ans d'expérience.
@@ -614,6 +637,235 @@ Vaulty Protocol vous protège avec:
     keyboard = [[InlineKeyboardButton("🌐 Visiter le site", url="https://vaultyprotocol.tech")]]
     await update.message.reply_text(response, parse_mode="Markdown", reply_markup=InlineKeyboardMarkup(keyboard))
 
+
+# ==================== COMMANDES ADMIN ====================
+
+async def addprice_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Commande admin: /addprice [card_id] [grade] [min] [max]"""
+    user_id = update.effective_user.id
+    if not is_admin(user_id):
+        await update.message.reply_text("⛔ Commande réservée aux administrateurs.")
+        return
+
+    if not PRICING_AVAILABLE:
+        await update.message.reply_text("❌ Système de prix non disponible.")
+        return
+
+    args = context.args
+    if len(args) < 4:
+        await update.message.reply_text(
+            "**Usage:** `/addprice [card_id] [grade] [min] [max]`\n\n"
+            "**Exemple:**\n"
+            "`/addprice pokemon_pikachu_base_58 PSA_10 150 300`\n\n"
+            "**Grades supportés:** RAW, PSA_7, PSA_8, PSA_9, PSA_10, BGS_9, BGS_9.5, BGS_10",
+            parse_mode="Markdown"
+        )
+        return
+
+    card_id = args[0]
+    grade = args[1].upper().replace("-", "_")
+    try:
+        min_price = int(args[2])
+        max_price = int(args[3])
+    except ValueError:
+        await update.message.reply_text("❌ Les prix doivent être des nombres entiers.")
+        return
+
+    # Vérifier si la carte existe
+    existing = db_manager.find_card_exact(card_id)
+    if existing:
+        # Mise à jour
+        db_manager.update_price(card_id, grade, min_price, max_price)
+        await update.message.reply_text(
+            f"✅ **Prix mis à jour !**\n\n"
+            f"📦 Carte: `{card_id}`\n"
+            f"📊 Grade: {grade}\n"
+            f"💰 Prix: ${min_price} - ${max_price}",
+            parse_mode="Markdown"
+        )
+    else:
+        await update.message.reply_text(
+            f"❌ Carte `{card_id}` non trouvée.\n\n"
+            f"Pour créer une nouvelle carte, utilisez:\n"
+            f"`/newcard [card_id] [name] [game] [set] [number]`",
+            parse_mode="Markdown"
+        )
+
+
+async def newcard_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Commande admin: /newcard pour ajouter une nouvelle carte"""
+    user_id = update.effective_user.id
+    if not is_admin(user_id):
+        await update.message.reply_text("⛔ Commande réservée aux administrateurs.")
+        return
+
+    if not PRICING_AVAILABLE:
+        await update.message.reply_text("❌ Système de prix non disponible.")
+        return
+
+    # Format: /newcard card_id | name | game | set | number
+    text = " ".join(context.args) if context.args else ""
+    if "|" not in text:
+        await update.message.reply_text(
+            "**Usage:** `/newcard card_id | name | game | set | number`\n\n"
+            "**Exemple:**\n"
+            "`/newcard pokemon_mew_base_151 | Mew | Pokemon | Base Set | 151`",
+            parse_mode="Markdown"
+        )
+        return
+
+    parts = [p.strip() for p in text.split("|")]
+    if len(parts) < 5:
+        await update.message.reply_text("❌ Format incorrect. Utilisez | comme séparateur.")
+        return
+
+    card_id, name, game, set_name, number = parts[:5]
+
+    db_manager.add_price(card_id, name, game, set_name, number, "RAW", 0, 0)
+    await update.message.reply_text(
+        f"✅ **Carte créée !**\n\n"
+        f"🆔 ID: `{card_id}`\n"
+        f"📦 Nom: {name}\n"
+        f"🎮 Jeu: {game}\n"
+        f"📁 Set: {set_name}\n\n"
+        f"Ajoutez des prix avec:\n"
+        f"`/addprice {card_id} PSA_10 min max`",
+        parse_mode="Markdown"
+    )
+
+
+async def listprices_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Commande admin: /listprices - Liste toutes les cartes"""
+    user_id = update.effective_user.id
+    if not is_admin(user_id):
+        await update.message.reply_text("⛔ Commande réservée aux administrateurs.")
+        return
+
+    if not PRICING_AVAILABLE:
+        await update.message.reply_text("❌ Système de prix non disponible.")
+        return
+
+    cards = db_manager.list_all_cards()
+
+    if not cards:
+        await update.message.reply_text("📭 Aucune carte dans la base de données.")
+        return
+
+    # Grouper par jeu
+    by_game = {}
+    for card in cards:
+        game = card.get("game", "Autre")
+        if game not in by_game:
+            by_game[game] = []
+        by_game[game].append(card)
+
+    response = "📊 **BASE DE DONNÉES DE PRIX**\n\n"
+
+    for game, game_cards in by_game.items():
+        response += f"**{game}** ({len(game_cards)} cartes)\n"
+        for card in game_cards[:5]:  # Limiter à 5 par jeu
+            grades = ", ".join(card.get("grades", []))
+            response += f"• `{card['id'][:25]}...`\n  Grades: {grades}\n"
+        if len(game_cards) > 5:
+            response += f"  _...et {len(game_cards) - 5} autres_\n"
+        response += "\n"
+
+    stats = db_manager.get_stats()
+    response += f"━━━━━━━━━━━━━━━━━━━\n"
+    response += f"**Total:** {stats['total_cards']} cartes, {stats['total_prices']} prix"
+
+    await update.message.reply_text(response, parse_mode="Markdown")
+
+
+async def oldprices_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Commande admin: /oldprices - Prix à mettre à jour"""
+    user_id = update.effective_user.id
+    if not is_admin(user_id):
+        await update.message.reply_text("⛔ Commande réservée aux administrateurs.")
+        return
+
+    if not PRICING_AVAILABLE:
+        await update.message.reply_text("❌ Système de prix non disponible.")
+        return
+
+    old_cards = db_manager.get_old_prices(months=3)
+
+    if not old_cards:
+        await update.message.reply_text("✅ Tous les prix sont à jour (< 3 mois) !")
+        return
+
+    response = "⚠️ **PRIX À METTRE À JOUR** (> 3 mois)\n\n"
+
+    for card in old_cards[:15]:  # Limiter à 15
+        response += f"• `{card['id'][:30]}`\n"
+        response += f"  Dernière MAJ: {card['last_verified']} ({card['months_old']} mois)\n"
+
+    if len(old_cards) > 15:
+        response += f"\n_...et {len(old_cards) - 15} autres cartes_"
+
+    await update.message.reply_text(response, parse_mode="Markdown")
+
+
+async def searchdb_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Commande admin: /searchdb [query] - Recherche dans la base"""
+    user_id = update.effective_user.id
+    if not is_admin(user_id):
+        await update.message.reply_text("⛔ Commande réservée aux administrateurs.")
+        return
+
+    if not PRICING_AVAILABLE:
+        await update.message.reply_text("❌ Système de prix non disponible.")
+        return
+
+    if not context.args:
+        await update.message.reply_text("**Usage:** `/searchdb [mot-clé]`", parse_mode="Markdown")
+        return
+
+    query = " ".join(context.args)
+    results = db_manager.search_cards(query, limit=10)
+
+    if not results:
+        await update.message.reply_text(f"❌ Aucun résultat pour '{query}'")
+        return
+
+    response = f"🔍 **Résultats pour '{query}':**\n\n"
+    for card_id, card_data in results:
+        prices = card_data.get("prices", {})
+        grades = ", ".join(prices.keys())
+        response += f"• **{card_data.get('name', 'N/A')}**\n"
+        response += f"  ID: `{card_id}`\n"
+        response += f"  Grades: {grades}\n\n"
+
+    await update.message.reply_text(response, parse_mode="Markdown")
+
+
+async def dbstats_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Commande: /dbstats - Statistiques de la base"""
+    if not PRICING_AVAILABLE:
+        await update.message.reply_text("❌ Système de prix non disponible.")
+        return
+
+    stats = db_manager.get_stats()
+
+    games_text = "\n".join([f"• {game}: {count}" for game, count in stats.get("games", {}).items()])
+
+    response = f"""📊 **STATISTIQUES BASE DE DONNÉES**
+━━━━━━━━━━━━━━━━━━━━━
+
+**Cartes vérifiées:** {stats['total_cards']}
+**Entrées de prix:** {stats['total_prices']}
+
+**Par catégorie:**
+{games_text}
+
+**Dernière MAJ:** {stats.get('last_updated', 'N/A')}
+
+━━━━━━━━━━━━━━━━━━━━━
+_Base de prix Vaulty Protocol_
+"""
+    await update.message.reply_text(response, parse_mode="Markdown")
+
+
 def main() -> None:
     """Lance le bot"""
     if not TELEGRAM_BOT_TOKEN:
@@ -638,6 +890,14 @@ def main() -> None:
     app.add_handler(CommandHandler("verifier", verifier_command))
     app.add_handler(CommandHandler("verify", verifier_command))
     app.add_handler(CommandHandler("contact", contact_command))
+
+    # Commandes admin (prix vérifiés)
+    app.add_handler(CommandHandler("addprice", addprice_command))
+    app.add_handler(CommandHandler("newcard", newcard_command))
+    app.add_handler(CommandHandler("listprices", listprices_command))
+    app.add_handler(CommandHandler("oldprices", oldprices_command))
+    app.add_handler(CommandHandler("searchdb", searchdb_command))
+    app.add_handler(CommandHandler("dbstats", dbstats_command))
 
     # Handlers
     app.add_handler(MessageHandler(filters.PHOTO, handle_photo))

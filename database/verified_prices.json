@@ -1,0 +1,176 @@
+{
+  "_metadata": {
+    "version": "1.0",
+    "last_updated": "2025-01-26",
+    "currency": "USD"
+  },
+  "cards": {
+    "pokemon_charizard_base_4": {
+      "name": "Charizard Base Set #4",
+      "game": "Pokemon",
+      "set": "Base Set",
+      "number": "4/102",
+      "prices": {
+        "RAW": {"min": 150, "max": 400},
+        "PSA_7": {"min": 300, "max": 500},
+        "PSA_8": {"min": 400, "max": 700},
+        "PSA_9": {"min": 800, "max": 1200},
+        "PSA_10": {"min": 5000, "max": 8000}
+      },
+      "last_verified": "2025-01",
+      "notes": "Unlimited Base Set"
+    },
+    "pokemon_charizard_base_1st_4": {
+      "name": "Charizard Base Set 1st Edition #4",
+      "game": "Pokemon",
+      "set": "Base Set 1st Edition",
+      "number": "4/102",
+      "prices": {
+        "RAW": {"min": 5000, "max": 15000},
+        "PSA_7": {"min": 15000, "max": 25000},
+        "PSA_8": {"min": 25000, "max": 40000},
+        "PSA_9": {"min": 50000, "max": 80000},
+        "PSA_10": {"min": 300000, "max": 450000}
+      },
+      "last_verified": "2025-01",
+      "notes": "Holy grail Pokemon card"
+    },
+    "pokemon_pikachu_base_58": {
+      "name": "Pikachu Base Set #58",
+      "game": "Pokemon",
+      "set": "Base Set",
+      "number": "58/102",
+      "prices": {
+        "RAW": {"min": 5, "max": 15},
+        "PSA_9": {"min": 30, "max": 60},
+        "PSA_10": {"min": 150, "max": 300}
+      },
+      "last_verified": "2025-01",
+      "notes": "Yellow cheeks version"
+    },
+    "onepiece_luffy_op01_003": {
+      "name": "Monkey D. Luffy OP01-003",
+      "game": "One Piece TCG",
+      "set": "Romance Dawn OP01",
+      "number": "OP01-003",
+      "prices": {
+        "RAW": {"min": 2, "max": 5},
+        "PSA_10": {"min": 30, "max": 60}
+      },
+      "last_verified": "2025-01",
+      "notes": "Leader card"
+    },
+    "onepiece_shanks_op01_120_sec": {
+      "name": "Shanks OP01-120 SEC",
+      "game": "One Piece TCG",
+      "set": "Romance Dawn OP01",
+      "number": "OP01-120",
+      "rarity": "Secret Rare",
+      "prices": {
+        "RAW": {"min": 80, "max": 150},
+        "PSA_10": {"min": 300, "max": 500}
+      },
+      "last_verified": "2025-01",
+      "notes": "Secret Rare"
+    },
+    "nba_jordan_fleer_1986_57": {
+      "name": "Michael Jordan 1986 Fleer RC #57",
+      "game": "Basketball",
+      "set": "1986-87 Fleer",
+      "number": "57",
+      "prices": {
+        "RAW": {"min": 800, "max": 2000},
+        "PSA_6": {"min": 1500, "max": 2500},
+        "PSA_7": {"min": 2500, "max": 4000},
+        "PSA_8": {"min": 5000, "max": 8000},
+        "PSA_9": {"min": 20000, "max": 35000},
+        "PSA_10": {"min": 400000, "max": 600000}
+      },
+      "last_verified": "2025-01",
+      "notes": "The holy grail of basketball cards"
+    },
+    "nba_lebron_topps_chrome_2003_111": {
+      "name": "LeBron James 2003 Topps Chrome RC #111",
+      "game": "Basketball",
+      "set": "2003-04 Topps Chrome",
+      "number": "111",
+      "prices": {
+        "RAW": {"min": 400, "max": 800},
+        "PSA_8": {"min": 1000, "max": 1500},
+        "PSA_9": {"min": 2500, "max": 4000},
+        "PSA_10": {"min": 30000, "max": 50000}
+      },
+      "last_verified": "2025-01",
+      "notes": "Key LeBron RC"
+    },
+    "nba_luka_prizm_2018_280": {
+      "name": "Luka Doncic 2018 Prizm RC #280",
+      "game": "Basketball",
+      "set": "2018-19 Panini Prizm",
+      "number": "280",
+      "prices": {
+        "RAW": {"min": 20, "max": 40},
+        "PSA_9": {"min": 60, "max": 100},
+        "PSA_10": {"min": 350, "max": 550}
+      },
+      "last_verified": "2025-01",
+      "notes": "Base Prizm RC"
+    },
+    "nba_luka_prizm_silver_2018_280": {
+      "name": "Luka Doncic 2018 Prizm Silver RC #280",
+      "game": "Basketball",
+      "set": "2018-19 Panini Prizm",
+      "number": "280",
+      "rarity": "Silver Prizm",
+      "prices": {
+        "RAW": {"min": 100, "max": 200},
+        "PSA_9": {"min": 350, "max": 550},
+        "PSA_10": {"min": 1200, "max": 2000}
+      },
+      "last_verified": "2025-01",
+      "notes": "Silver Prizm parallel"
+    },
+    "nfl_mahomes_prizm_2017_269": {
+      "name": "Patrick Mahomes 2017 Prizm RC #269",
+      "game": "Football",
+      "set": "2017 Panini Prizm",
+      "number": "269",
+      "prices": {
+        "RAW": {"min": 150, "max": 300},
+        "PSA_9": {"min": 400, "max": 700},
+        "PSA_10": {"min": 2000, "max": 3500}
+      },
+      "last_verified": "2025-01",
+      "notes": "Base Prizm RC"
+    },
+    "yugioh_blue_eyes_lob_001": {
+      "name": "Blue-Eyes White Dragon LOB-001",
+      "game": "Yu-Gi-Oh",
+      "set": "Legend of Blue Eyes White Dragon",
+      "number": "LOB-001",
+      "prices": {
+        "RAW": {"min": 50, "max": 150},
+        "PSA_8": {"min": 200, "max": 400},
+        "PSA_9": {"min": 500, "max": 900},
+        "PSA_10": {"min": 2000, "max": 4000}
+      },
+      "last_verified": "2025-01",
+      "notes": "1st Edition Ultra Rare"
+    },
+    "mtg_black_lotus_alpha": {
+      "name": "Black Lotus Alpha",
+      "game": "Magic: The Gathering",
+      "set": "Alpha",
+      "number": "-",
+      "prices": {
+        "RAW": {"min": 30000, "max": 80000},
+        "PSA_7": {"min": 100000, "max": 200000},
+        "PSA_8": {"min": 200000, "max": 350000},
+        "PSA_9": {"min": 400000, "max": 700000},
+        "PSA_10": {"min": 1000000, "max": 3000000}
+      },
+      "last_verified": "2025-01",
+      "notes": "Power Nine - Most valuable MTG card"
+    }
+  }
+}
