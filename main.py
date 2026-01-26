@@ -1,650 +1,764 @@
 #!/usr/bin/env python3
 """
-VAULTY CARD ANALYZER - BOT TELEGRAM
-Version Française avec Promotion + Prix Temps Réel
-© 2025 Vaulty Protocol 🇨🇭
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                      VAULTY CARD ANALYZER - TELEGRAM BOT                      ║
+║                    Trading Card Recognition & Valuation                       ║
+║                         Powered by Claude Vision                              ║
+║                                                                              ║
+║  v2.0 - Now with verified price database for 80%+ accuracy                   ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+Telegram bot for analyzing collectible trading cards using AI vision.
+Send a photo of your card and get instant identification and valuation.
 """
 
-import os
-import re
 import base64
+import json
 import logging
-import urllib.parse
-import aiohttp
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import Application, CommandHandler, MessageHandler, ContextTypes, filters
-import anthropic
+import os
+import sys
+from io import BytesIO
 
-# Configuration
-TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "")
-ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
-MODEL = "claude-sonnet-4-20250514"
+try:
+    import anthropic
+except ImportError:
+    print("❌ Error: anthropic package not installed. Run: pip install anthropic")
+    sys.exit(1)
 
-logging.basicConfig(format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO)
+try:
+    from telegram import Update
+    from telegram.ext import (
+        Application,
+        CommandHandler,
+        MessageHandler,
+        ContextTypes,
+        filters,
+    )
+except ImportError:
+    print("❌ Error: python-telegram-bot not installed. Run: pip install python-telegram-bot")
+    sys.exit(1)
+
+# Import Vaulty Pricing System
+try:
+    from vaulty_pricing import PriceEstimator, DatabaseManager, PriceFormatter
+    from vaulty_pricing.config import ADMIN_USER_IDS
+    PRICING_AVAILABLE = True
+except ImportError:
+    PRICING_AVAILABLE = False
+    ADMIN_USER_IDS = []
+
+# Configure logging
+logging.basicConfig(
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    level=logging.INFO
+)
 logger = logging.getLogger(__name__)
 
-# Prompt d'analyse en FRANÇAIS - Focus sur identification précise
-ANALYSIS_PROMPT = """Tu es un expert certifié en cartes à collectionner avec 20+ ans d'expérience.
+# Initialize pricing system
+if PRICING_AVAILABLE:
+    price_estimator = PriceEstimator()
+    db_manager = DatabaseManager()
+    price_formatter = PriceFormatter()
+else:
+    price_estimator = None
+    db_manager = None
+    price_formatter = None
 
-⚠️ RÈGLES ABSOLUES:
+# Admin user IDs from environment (comma-separated)
+ADMIN_IDS = set(ADMIN_USER_IDS)
+env_admins = os.environ.get("ADMIN_USER_IDS", "")
+if env_admins:
+    for admin_id in env_admins.split(","):
+        try:
+            ADMIN_IDS.add(int(admin_id.strip()))
+        except ValueError:
+            pass
 
-1. **IDENTIFICATION - SOIS PRÉCIS À 100%**:
-   - Lis CHAQUE texte visible sur la carte (nom, set, numéro, année, rareté)
-   - Identifie le JEU: Pokémon, One Piece TCG, Yu-Gi-Oh, Magic, Dragon Ball, Sports (NBA, NFL, etc.)
-   - Identifie le SET EXACT avec son code (ex: EB01, SV04, etc.)
-   - Identifie la RARETÉ/PARALLÈLE exact:
-     * One Piece: Common, Uncommon, Rare, Super Rare, Secret Rare, Manga Rare, Treasure Rare, Special Art
-     * Pokémon: Common, Uncommon, Rare, Holo Rare, V, VMAX, VSTAR, Alt Art, Special Art Rare, Hyper Rare
-     * Sports: Base, Prizm, Silver Prizm, Gold, Numbered /99 /25 /10 /1
-   - Si gradée, lis le LABEL COMPLET (compagnie, note, numéro certification)
 
-2. **ÉTAT - SOIS CRITIQUE**:
-   - Examine attentivement: centrage, coins, surface, bordures
-   - Note les défauts visibles
-   - Donne une note PSA équivalente réaliste
+def is_admin(user_id: int) -> bool:
+    """Check if user is an admin."""
+    return user_id in ADMIN_IDS
 
-3. **PRIX - SOIS HONNÊTE**:
-   - Indique "VÉRIFIEZ SUR EBAY SOLD" car tu n'as PAS accès aux prix en temps réel
-   - Donne une FOURCHETTE INDICATIVE basée sur la rareté de la carte
-   - Ne donne JAMAIS de prix précis comme si c'était la réalité
 
-Réponds EN FRANÇAIS avec ce format:
+def escape_md(text) -> str:
+    """Escape special characters for Telegram MarkdownV2."""
+    if text is None:
+        return "N/A"
+    text = str(text)
+    special_chars = ['_', '*', '[', ']', '(', ')', '~', '`', '>', '#', '+', '-', '=', '|', '{', '}', '.', '!']
+    for char in special_chars:
+        text = text.replace(char, f'\\{char}')
+    return text
 
-🎴 **IDENTIFICATION COMPLÈTE**
-• Jeu: [Pokémon / One Piece TCG / Yu-Gi-Oh / Magic / Sports / etc.]
-• Carte: [Nom EXACT visible sur la carte]
-• Set: [Nom complet + code, ex: "Memorial Collection EB01"]
-• Numéro: [Code exact, ex: EB01-051]
-• Rareté: [Rareté EXACTE - Common/Rare/Super Rare/Treasure Rare/etc.]
-• Parallèle: [Si applicable: Manga Rare, Alt Art, Gold Border, etc.]
-• Langue: [FR/EN/JP]
-• Gradée: [Non / Oui → Compagnie + Note + N° certification]
 
-📊 **ÉVALUATION DE L'ÉTAT**
-• Note estimée: [X/10] (équivalent PSA)
-• Centrage: [XX/XX] - [Excellent/Bon/Moyen/Décentré]
-• Coins: [Description précise]
-• Surface: [Description précise]
-• Bordures: [Description précise]
-• Défauts: [Liste ou "Aucun défaut majeur visible"]
+def get_welcome_message() -> str:
+    """Return the welcome message."""
+    return """
+🔷 *VAULTY CARD ANALYZER* 🔮
+━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-💰 **ESTIMATION INDICATIVE**
+Welcome to the AI\\-powered trading card analyzer\\!
 
-⚠️ **IMPORTANT**: Ces prix sont des ESTIMATIONS. Vérifiez les ventes réelles sur eBay Sold !
+📸 *How to use:*
+Simply send me a photo of your trading card and I'll analyze it for you\\.
 
-📦 **RAW** (non gradée): [Fourchette large basée sur la rareté]
-🏆 **PSA 10**: [Estimation si cette carte est recherchée gradée]
-🏅 **PSA 9**: [Estimation]
+💎 *I can identify:*
+• Player/Character name
+• Card set and year
+• Card number and parallels
+• Rookie cards, autos, memorabilia
 
-🔎 **Pour le prix RÉEL**: Recherchez "[Nom carte] [Set] [Rareté] sold" sur eBay
+📊 *Price estimates with confidence levels:*
+• 🟢 High confidence \\- Verified prices
+• 🟡 Medium confidence \\- Algorithm estimate
+• 🟠 Low confidence \\- Rough estimate
+• 🔴 Unavailable \\- Check eBay Sold
 
-📈 **POTENTIEL**: [Cette carte est-elle recherchée ? Populaire ? Rare ?]
-
-💡 **RECOMMANDATION**: [CONSERVER / VENDRE / FAIRE GRADER]
-[Explication basée sur la rareté et l'état]
-
-💎 **CONSEIL VAULTY**: [Conseil sur la protection/certification]
-
----
-🔐 *Analyse Vaulty Protocol • vaultyprotocol.tech*
+━━━━━━━━━━━━━━━━━━━━━━━━━━
+_Powered by Vaulty Protocol × Claude Vision_
+_v2\\.0 \\- Verified Price Database_
 """
 
 
-def generate_search_urls(card_name: str, set_name: str, game: str) -> dict:
-    """Génère des URLs de recherche pour vérifier les prix réels"""
-    # Nettoyer le nom de la carte pour la recherche
-    search_query = f"{card_name} {set_name}".strip()
-    encoded_query = urllib.parse.quote(search_query)
+def get_analyzing_message() -> str:
+    """Return the analyzing status message."""
+    return "🔮 *Analyzing your card with AI vision\\.\\.\\.*\n\n_This may take a few seconds\\._"
 
-    urls = {
-        "ebay_sold": f"https://www.ebay.fr/sch/i.html?_nkw={encoded_query}&LH_Complete=1&LH_Sold=1",
-        "ebay_active": f"https://www.ebay.fr/sch/i.html?_nkw={encoded_query}",
-    }
 
-    # URLs spécifiques selon le jeu
-    game_lower = game.lower() if game else ""
+def format_analysis_result(analysis: dict, price_estimates: dict = None) -> str:
+    """Format the analysis result for Telegram with MarkdownV2."""
+    ident = analysis.get("identification", {})
+    condition = analysis.get("condition_assessment", {})
+    ai_values = analysis.get("market_values", {})
+    confidence = analysis.get("confidence", {})
+    desc = analysis.get("description", "")
 
-    if "pokemon" in game_lower or "pokémon" in game_lower:
-        urls["cardmarket"] = f"https://www.cardmarket.com/fr/Pokemon/Products/Search?searchString={encoded_query}"
-        urls["tcgplayer"] = f"https://www.tcgplayer.com/search/pokemon/product?q={encoded_query}"
-    elif "one piece" in game_lower:
-        urls["cardmarket"] = f"https://www.cardmarket.com/fr/OnePiece/Products/Search?searchString={encoded_query}"
-        urls["tcgplayer"] = f"https://www.tcgplayer.com/search/one-piece-card-game/product?q={encoded_query}"
-    elif "yu-gi-oh" in game_lower or "yugioh" in game_lower:
-        urls["cardmarket"] = f"https://www.cardmarket.com/fr/YuGiOh/Products/Search?searchString={encoded_query}"
-        urls["tcgplayer"] = f"https://www.tcgplayer.com/search/yugioh/product?q={encoded_query}"
-    elif "magic" in game_lower:
-        urls["cardmarket"] = f"https://www.cardmarket.com/fr/Magic/Products/Search?searchString={encoded_query}"
-        urls["tcgplayer"] = f"https://www.tcgplayer.com/search/magic/product?q={encoded_query}"
+    # Build special attributes
+    special_attrs = []
+    if ident.get("rookie_card"):
+        special_attrs.append("🌟 RC")
+    if ident.get("autograph"):
+        special_attrs.append("✍️ AUTO")
+    if ident.get("memorabilia"):
+        special_attrs.append(f"👕 {escape_md(ident.get('memorabilia'))}")
+    if ident.get("serial_numbered"):
+        special_attrs.append(f"🔢 {escape_md(ident.get('serial_numbered'))}")
+
+    special_line = " • ".join(special_attrs) if special_attrs else ""
+
+    # Condition emoji
+    grade = str(condition.get("estimated_grade", "?"))
+    if grade in ["10", "9"]:
+        grade_emoji = "🟢"
+    elif grade in ["8", "7"]:
+        grade_emoji = "🟡"
     else:
-        urls["cardmarket"] = f"https://www.cardmarket.com/fr/search?searchString={encoded_query}"
-        urls["tcgplayer"] = f"https://www.tcgplayer.com/search/all/product?q={encoded_query}"
+        grade_emoji = "🔴"
 
-    return urls
+    # Confidence emoji
+    id_conf = confidence.get("identification_confidence", "Medium")
+    conf_emoji = "🟢" if id_conf == "High" else "🟡" if id_conf == "Medium" else "🔴"
+
+    result = f"""
+🔷 *VAULTY CARD ANALYSIS* 🔮
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+*🎴 IDENTIFICATION*
+
+*Category:* {escape_md(ident.get('sport_category', 'Unknown'))}
+*Player/Character:* {escape_md(ident.get('player_character', 'Unknown'))}
+*Team:* {escape_md(ident.get('team', 'N/A'))}
+*Year:* {escape_md(ident.get('year', 'Unknown'))}
+*Manufacturer:* {escape_md(ident.get('manufacturer', 'Unknown'))}
+*Set:* {escape_md(ident.get('set_name', 'Unknown'))}
+*Card \\#:* {escape_md(ident.get('card_number', 'Unknown'))}
+*Parallel/Subset:* {escape_md(ident.get('subset_parallel', 'Base'))}
+"""
+
+    if special_line:
+        result += f"\n*Special:* {special_line}\n"
+
+    result += f"""
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+*📋 CONDITION ASSESSMENT*
+
+{grade_emoji} *Estimated Grade:* PSA {escape_md(grade)}
+• Centering: {escape_md(condition.get('centering', 'N/A'))}
+• Corners: {escape_md(condition.get('corners', 'N/A'))}
+• Edges: {escape_md(condition.get('edges', 'N/A'))}
+• Surface: {escape_md(condition.get('surface', 'N/A'))}
+"""
+
+    flaws = condition.get("notable_flaws", [])
+    if flaws and flaws != ["None"] and len(flaws) > 0:
+        flaws_text = ", ".join([escape_md(f) for f in flaws])
+        result += f"• Flaws: _{flaws_text}_\n"
+
+    result += "\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
+
+    # Use verified pricing system if available
+    if price_estimates and PRICING_AVAILABLE:
+        result += price_formatter.format_full_price_section(price_estimates, ident)
+    else:
+        # Fallback to AI estimates with warning
+        trend = ai_values.get("value_trend", "Stable")
+        trend_emoji = "📈" if trend == "Rising" else "📉" if trend == "Declining" else "➡️"
+
+        def format_price(value) -> str:
+            try:
+                num = float(value) if value else 0
+                if num >= 1000:
+                    return f"${num:,.0f}".replace(",", "\\,")
+                elif num >= 1:
+                    return f"${num:.0f}"
+                else:
+                    return f"${num:.2f}"
+            except (ValueError, TypeError):
+                return escape_md(str(value))
+
+        result += f"""*💰 MARKET VALUES \\(USD\\)*
+
+⚠️ *AI Estimates \\- Always verify on eBay Sold\\!*
+
+*RAW \\(Ungraded\\):*
+└ {format_price(ai_values.get('raw_low', 0))} \\- {format_price(ai_values.get('raw_high', 0))}
+
+*Graded:*
+🏆 PSA 10: ~{format_price(ai_values.get('psa_10', 0))}
+🥇 PSA 9: ~{format_price(ai_values.get('psa_9', 0))}
+🥈 PSA 8: ~{format_price(ai_values.get('psa_8', 0))}
+
+{trend_emoji} *Trend:* {escape_md(trend)}
+
+🔍 *Verify prices on eBay Sold listings\\!*
+"""
+
+    result += f"""
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+{conf_emoji} *ID Confidence:* {escape_md(id_conf)}
+"""
+
+    if desc:
+        result += f"\n📄 _{escape_md(desc)}_\n"
+
+    if confidence.get("notes"):
+        result += f"\n⚠️ _{escape_md(confidence.get('notes'))}_\n"
+
+    result += """
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+_Powered by Vaulty Protocol × Claude Vision_
+"""
+
+    return result
 
 
-def extract_card_info(analysis_text: str) -> dict:
-    """Extrait les informations de la carte depuis l'analyse Claude"""
-    info = {
-        "game": "",
-        "card_name": "",
-        "set_name": "",
-        "number": "",
-        "rarity": ""
-    }
+async def analyze_card_image(image_data: bytes, media_type: str = "image/jpeg") -> dict:
+    """Analyze a card image using Claude Vision API."""
+    api_key = os.environ.get("ANTHROPIC_API_KEY")
+    if not api_key:
+        raise ValueError("ANTHROPIC_API_KEY environment variable not set")
 
-    lines = analysis_text.split('\n')
-    for line in lines:
-        line_lower = line.lower()
-        if "• jeu:" in line_lower or "• jeu :" in line_lower:
-            info["game"] = line.split(":", 1)[-1].strip()
-        elif "• carte:" in line_lower or "• carte :" in line_lower:
-            info["card_name"] = line.split(":", 1)[-1].strip()
-        elif "• set:" in line_lower or "• set :" in line_lower:
-            info["set_name"] = line.split(":", 1)[-1].strip()
-        elif "• numéro:" in line_lower or "• numéro :" in line_lower:
-            info["number"] = line.split(":", 1)[-1].strip()
-        elif "• rareté:" in line_lower or "• rareté :" in line_lower:
-            info["rarity"] = line.split(":", 1)[-1].strip()
+    client = anthropic.Anthropic(api_key=api_key)
+    base64_image = base64.standard_b64encode(image_data).decode("utf-8")
 
-    return info
+    # Updated prompt - focus on identification, let pricing system handle values
+    analysis_prompt = """You are an expert trading card analyst. Analyze this trading card image and provide detailed identification.
 
+IMPORTANT: Respond ONLY with a valid JSON object, no additional text or markdown formatting.
 
-async def analyze_card(image_bytes: bytes) -> str:
-    """Analyse une carte via Claude API"""
-    if not ANTHROPIC_API_KEY:
-        return """❌ **Erreur de configuration**
+Focus on ACCURATE IDENTIFICATION. For prices, provide rough estimates only - they will be refined by our pricing database.
 
-Le service d'analyse n'est pas disponible pour le moment.
+Return this exact JSON structure:
+{
+    "identification": {
+        "sport_category": "Sport or category (Baseball, Basketball, Football, Pokemon, MTG, Yu-Gi-Oh, etc.)",
+        "player_character": "Player name or character name - BE PRECISE",
+        "team": "Team name if applicable, or null",
+        "year": "Year of the card (number only, e.g., 2003)",
+        "manufacturer": "Card manufacturer (Topps, Panini, Upper Deck, WOTC, etc.)",
+        "set_name": "EXACT name of the card set",
+        "card_number": "Card number in the set",
+        "subset_parallel": "Subset or parallel name if applicable (Base, Rookie, Refractor, Silver Prizm, etc.)",
+        "serial_numbered": "Serial numbering if visible (e.g., '/99', '/25'), or null",
+        "rookie_card": true/false,
+        "autograph": true/false,
+        "memorabilia": "Type of memorabilia if present (jersey, patch, etc.), or null"
+    },
+    "condition_assessment": {
+        "estimated_grade": "Estimated PSA grade 1-10 (number only)",
+        "centering": "Poor/Fair/Good/Excellent",
+        "corners": "Poor/Fair/Good/Excellent",
+        "edges": "Poor/Fair/Good/Excellent",
+        "surface": "Poor/Fair/Good/Excellent",
+        "notable_flaws": ["List any visible flaws"]
+    },
+    "market_values": {
+        "raw_low": 0,
+        "raw_mid": 0,
+        "raw_high": 0,
+        "psa_10": 0,
+        "psa_9": 0,
+        "psa_8": 0,
+        "value_trend": "Rising/Stable/Declining",
+        "market_notes": "Brief note about the card's market"
+    },
+    "confidence": {
+        "identification_confidence": "High/Medium/Low",
+        "value_confidence": "Low",
+        "notes": "Any uncertainty about identification"
+    },
+    "description": "Brief 1-2 sentence description of the card"
+}
 
-En attendant, découvrez nos services sur:
-🌐 **vaultyprotocol.tech**
+IMPORTANT:
+- Be VERY precise with player names, set names, and years
+- If uncertain about identification, say so in the notes
+- For values, only provide rough ballpark estimates - our database will refine them
+- All numeric values should be numbers only (no $ or commas)"""
 
-Ou contactez-nous pour une expertise manuelle !"""
-
-    try:
-        image_base64 = base64.standard_b64encode(image_bytes).decode("utf-8")
-        client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
-
-        message = client.messages.create(
-            model=MODEL,
-            max_tokens=2048,
-            messages=[{
+    message = client.messages.create(
+        model="claude-sonnet-4-20250514",
+        max_tokens=2000,
+        messages=[
+            {
                 "role": "user",
                 "content": [
-                    {"type": "image", "source": {"type": "base64", "media_type": "image/jpeg", "data": image_base64}},
-                    {"type": "text", "text": ANALYSIS_PROMPT}
+                    {
+                        "type": "image",
+                        "source": {
+                            "type": "base64",
+                            "media_type": media_type,
+                            "data": base64_image,
+                        },
+                    },
+                    {"type": "text", "text": analysis_prompt}
                 ],
-            }],
-        )
-        return message.content[0].text
-    except Exception as e:
-        logger.error(f"Erreur API: {e}")
-        return f"""❌ **Erreur lors de l'analyse**
-
-Détails: {str(e)}
-
-Réessayez ou visitez notre site pour une expertise manuelle:
-🌐 **vaultyprotocol.tech**"""
-
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Commande /start"""
-    welcome = """
-🎴 **VAULTY CARD ANALYZER**
-━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-Bienvenue sur le bot officiel de **Vaulty Protocol** ! 🇨🇭
-
-Je suis votre assistant IA pour l'analyse de cartes à collectionner (Pokémon, Football, Basketball, etc.)
-
-📸 **Envoyez-moi une photo** et j'analyserai:
-✅ Identification complète de la carte
-✅ Estimation de l'état (1-10)
-✅ Prix de marché (RAW & gradé)
-✅ Tendance et recommandation
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-🔐 **POURQUOI VAULTY PROTOCOL ?**
-
-Nous sommes le premier service suisse d'authentification de cartes par blockchain:
-
-• 🛡️ **Protection anti-contrefaçon** - Hologramme VOID + puce NFC
-• ⛓️ **Certificat blockchain** - NFT sur Polygon infalsifiable
-• 🔍 **Empreinte digitale unique** - Chaque carte a son identité
-• 🇨🇭 **Qualité Suisse** - Inspection minutieuse
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-📷 **Envoyez une photo pour commencer !**
-
-🎯 Commandes: /help • /services • /prix • /contact
-"""
-    keyboard = [
-        [
-            InlineKeyboardButton("🌐 Découvrir Vaulty", url="https://vaultyprotocol.tech"),
-            InlineKeyboardButton("🛒 Marketplace", url="https://vaultyprotocol.tech/marketplace/"),
+            }
         ],
-        [
-            InlineKeyboardButton("🔐 Nos Services", url="https://vaultyprotocol.tech/pass-services/"),
-            InlineKeyboardButton("✅ Vérifier une Carte", url="https://vaultyprotocol.tech/vaultyprotocol-tech-verify/"),
-        ],
-        [
-            InlineKeyboardButton("📱 Instagram", url="https://instagram.com/vaulty_protocol"),
-            InlineKeyboardButton("🐦 Twitter/X", url="https://x.com/vaulty_protocol"),
-        ],
-    ]
-    await update.message.reply_text(welcome, parse_mode="Markdown", reply_markup=InlineKeyboardMarkup(keyboard))
+    )
+
+    response_text = message.content[0].text
+
+    try:
+        if "```json" in response_text:
+            response_text = response_text.split("```json")[1].split("```")[0]
+        elif "```" in response_text:
+            response_text = response_text.split("```")[1].split("```")[0]
+
+        return json.loads(response_text.strip())
+    except json.JSONDecodeError as e:
+        logger.error(f"Failed to parse JSON: {e}")
+        raise ValueError("Failed to parse API response")
+
+
+async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Handle the /start command."""
+    await update.message.reply_text(get_welcome_message(), parse_mode="MarkdownV2")
+
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Commande /help"""
+    """Handle the /help command."""
     help_text = """
-📖 **AIDE - VAULTY CARD ANALYZER**
-━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🔷 *VAULTY CARD ANALYZER \\- HELP* 🔮
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-**📸 ANALYSER UNE CARTE**
-1. Prenez une photo claire de votre carte
-2. Envoyez-la dans ce chat
-3. Attendez l'analyse IA (5-15 sec)
+*Commands:*
+/start \\- Welcome message
+/help \\- Show this help
+/about \\- About the bot
+/stats \\- Database statistics
 
-**💡 CONSEILS PHOTO**
-• Bonne lumière, pas de reflets
-• Carte entière visible
-• Si gradée, montrez le label PSA/BGS
+*How to analyze a card:*
+1\\. Take a clear photo of your card
+2\\. Send the photo to this chat
+3\\. Wait for the AI analysis
 
-**📊 CE QUE VOUS OBTENEZ**
-• Identification (joueur, set, année)
-• Estimation de condition (1-10)
-• Prix RAW et gradé (€ et CHF)
-• Tendance du marché
-• Recommandation personnalisée
+*Understanding confidence levels:*
+🟢 HIGH \\- Verified from real sales
+🟡 MEDIUM \\- Algorithm estimate
+🟠 LOW \\- Rough estimate
+🔴 N/A \\- Check eBay Sold
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━
+*Tips for best results:*
+• Use good lighting
+• Capture the full card
+• Avoid glare and reflections
+• Higher resolution \\= better ID
 
-**🎯 COMMANDES**
-/start - Message de bienvenue
-/help - Cette aide
-/services - Nos services de certification
-/prix - Tarifs Vaulty Protocol
-/verifier - Vérifier une carte certifiée
-/contact - Nous contacter
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-⚠️ *Les estimations sont basées sur les données de marché. Consultez eBay Sold pour les prix actuels.*
-
-🌐 **vaultyprotocol.tech**
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+_Powered by Vaulty Protocol × Claude Vision_
 """
-    keyboard = [[InlineKeyboardButton("🌐 Visiter notre site", url="https://vaultyprotocol.tech")]]
-    await update.message.reply_text(help_text, parse_mode="Markdown", reply_markup=InlineKeyboardMarkup(keyboard))
+    await update.message.reply_text(help_text, parse_mode="MarkdownV2")
 
-async def services_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Commande /services"""
-    services_text = """
-🔐 **NOS SERVICES DE CERTIFICATION**
-━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-**🥉 FORFAIT BRONZE** - dès 15 CHF
-• Inspection visuelle complète
-• Certificat numérique
-• QR Code de vérification
-→ Idéal pour les cartes < 50€
+async def about_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Handle the /about command."""
+    about_text = """
+🔷 *ABOUT VAULTY CARD ANALYZER* 🔮
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-**🥈 FORFAIT ARGENT** - dès 35 CHF
-• Tout Bronze +
-• Hologramme VOID anti-ouverture
-• Puce NFC cryptographique
-• NFT sur blockchain Polygon
-→ Recommandé pour cartes 50-200€
+*Version:* 2\\.0\\.0
 
-**🥇 FORFAIT OR** - dès 75 CHF
-• Tout Argent +
-• Boîtier de protection premium
-• Mesures physiques précises
-• Empreinte digitale complète
-→ Pour vos cartes de valeur 200€+
+This bot uses advanced AI vision technology combined with a verified price database for accurate card analysis\\.
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🏀 Sports Cards \\(Basketball, Football, Baseball\\)
+🎴 TCGs \\(Pokemon, Magic, Yu\\-Gi\\-Oh\\!\\)
+⚽ Soccer Cards
 
-✨ **AVANTAGES VAULTY**
-• Vendez 25-50% plus cher
-• Confiance acheteur immédiate
-• Protection anti-contrefaçon
-• Traçabilité blockchain
-• Qualité Suisse 🇨🇭
+*Price Accuracy:*
+• Verified database for popular cards
+• Algorithm estimates for others
+• Always shows confidence level
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━
-📷 *Envoyez une photo pour une estimation gratuite !*
+*Disclaimer:*
+Prices are estimates\\. Always verify on eBay Sold before buying/selling\\.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+_© 2024 Vaulty Protocol_
 """
-    keyboard = [
-        [InlineKeyboardButton("🔐 Commander une Certification", url="https://vaultyprotocol.tech/pass-services/")],
-        [InlineKeyboardButton("🛒 Voir le Marketplace", url="https://vaultyprotocol.tech/marketplace/")],
-        [InlineKeyboardButton("📞 Nous Contacter", url="https://vaultyprotocol.tech/contact/")],
-    ]
-    await update.message.reply_text(services_text, parse_mode="Markdown", reply_markup=InlineKeyboardMarkup(keyboard))
+    await update.message.reply_text(about_text, parse_mode="MarkdownV2")
 
-async def prix_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Commande /prix"""
-    prix_text = """
-💰 **TARIFS VAULTY PROTOCOL**
-━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-**📦 CARTES GRADÉES (PSA, BGS, CGC)**
+async def stats_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Handle the /stats command."""
+    if not PRICING_AVAILABLE or not db_manager:
+        await update.message.reply_text(
+            "📊 Database not available\\.",
+            parse_mode="MarkdownV2"
+        )
+        return
 
-🥉 Bronze: **15-19 CHF**
-🥈 Argent: **35-45 CHF**
-🥇 Or: **75-95 CHF**
+    stats = db_manager.get_stats()
 
-**🃏 CARTES RAW (non gradées)**
+    categories_text = "\n".join([
+        f"• {escape_md(cat)}: {count}"
+        for cat, count in stats.get("categories", {}).items()
+    ])
 
-🥉 Bronze: **19-25 CHF**
-🥈 Argent: **45-55 CHF**
-🥇 Or: **95-115 CHF**
+    stats_text = f"""
+📊 *DATABASE STATISTICS*
+━━━━━━━━━━━━━━━━━━━━━━
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━
+*Verified Cards:* {stats.get('total_cards', 0)}
+*Price Entries:* {stats.get('total_price_entries', 0)}
 
-**💎 SERVICES ADDITIONNELS**
+*Categories:*
+{categories_text}
 
-• Rapport de Collection: 19-49 CHF
-• Évaluation Assurance: 29 CHF
-• Alerte Prix Premium: 5-9 CHF/mois
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-🎁 **OFFRE SPÉCIALE**
--10% sur votre première certification !
-Code: **TELEGRAM10**
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━
-📷 *Envoyez une photo pour savoir quel forfait vous convient !*
+━━━━━━━━━━━━━━━━━━━━━━
+_Growing daily\\!_
 """
-    keyboard = [
-        [InlineKeyboardButton("🔐 Commander Maintenant", url="https://vaultyprotocol.tech/pass-services/")],
-        [InlineKeyboardButton("💬 Demander un Devis", url="https://vaultyprotocol.tech/contact/")],
-    ]
-    await update.message.reply_text(prix_text, parse_mode="Markdown", reply_markup=InlineKeyboardMarkup(keyboard))
+    await update.message.reply_text(stats_text, parse_mode="MarkdownV2")
 
-async def verifier_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Commande /verifier"""
-    verifier_text = """
-✅ **VÉRIFIER UNE CARTE VAULTY**
-━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-Vous avez acheté une carte certifiée Vaulty ?
-Vérifiez son authenticité en 2 secondes !
+# ==================== ADMIN COMMANDS ====================
 
-**🔍 COMMENT VÉRIFIER ?**
+async def addprice_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Admin command to add a verified price."""
+    user_id = update.effective_user.id
+    if not is_admin(user_id):
+        await update.message.reply_text("⛔ Admin only command\\.", parse_mode="MarkdownV2")
+        return
 
-1️⃣ **Par QR Code**
-Scannez le QR sur le certificat
+    if not PRICING_AVAILABLE or not db_manager:
+        await update.message.reply_text("❌ Pricing system not available\\.", parse_mode="MarkdownV2")
+        return
 
-2️⃣ **Par ID Vaulty**
-Entrez le code VLT-XXX-XXX-XXXXXX sur notre site
+    # Parse arguments: /addprice card_id grade min max
+    args = context.args
+    if len(args) < 4:
+        await update.message.reply_text(
+            "Usage: `/addprice card_id grade min_price max_price`\n\n"
+            "Example: `/addprice 2018_prizm_luka_doncic PSA\\_10 350 500`",
+            parse_mode="MarkdownV2"
+        )
+        return
 
-3️⃣ **Par NFC** (Forfait Argent/Or)
-Approchez votre téléphone de la puce
+    card_id = args[0]
+    grade = args[1].replace("_", " ")
+    try:
+        price_min = float(args[2])
+        price_max = float(args[3])
+    except ValueError:
+        await update.message.reply_text("❌ Invalid price values\\.", parse_mode="MarkdownV2")
+        return
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    # Check if card exists
+    if card_id in db_manager.verified_prices:
+        db_manager.update_price(card_id, grade, price_min, price_max)
+        await update.message.reply_text(
+            f"✅ Updated price for `{escape_md(card_id)}`\n"
+            f"Grade: {escape_md(grade)}\n"
+            f"Price: ${price_min} \\- ${price_max}",
+            parse_mode="MarkdownV2"
+        )
+    else:
+        await update.message.reply_text(
+            f"❌ Card `{escape_md(card_id)}` not found in database\\.\n"
+            "Use /newcard to add a new card first\\.",
+            parse_mode="MarkdownV2"
+        )
 
-**🛡️ CE QUE VOUS VOYEZ**
-• Photo originale de la carte
-• Empreinte digitale unique
-• Historique complet
-• Certificat blockchain
-• Lien OpenSea du NFT
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━
-⚠️ *Si la vérification échoue, contactez-nous immédiatement !*
-"""
-    keyboard = [
-        [InlineKeyboardButton("✅ Vérifier une Carte", url="https://vaultyprotocol.tech/vaultyprotocol-tech-verify/")],
-        [InlineKeyboardButton("⚠️ Signaler un Problème", url="https://vaultyprotocol.tech/contact/")],
-    ]
-    await update.message.reply_text(verifier_text, parse_mode="Markdown", reply_markup=InlineKeyboardMarkup(keyboard))
+async def checkprice_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Admin command to check prices in database."""
+    user_id = update.effective_user.id
+    if not is_admin(user_id):
+        await update.message.reply_text("⛔ Admin only command\\.", parse_mode="MarkdownV2")
+        return
 
-async def contact_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Commande /contact"""
-    contact_text = """
-📞 **CONTACTEZ VAULTY PROTOCOL**
-━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    if not PRICING_AVAILABLE or not db_manager:
+        await update.message.reply_text("❌ Pricing system not available\\.", parse_mode="MarkdownV2")
+        return
 
-**🌐 Site Web**
-vaultyprotocol.tech
+    args = context.args
+    if not args:
+        await update.message.reply_text(
+            "Usage: `/checkprice card_id` or `/checkprice search_query`",
+            parse_mode="MarkdownV2"
+        )
+        return
 
-**📧 Email**
-contact@vaultyprotocol.tech
+    query = " ".join(args)
 
-**📱 Réseaux Sociaux**
-• Twitter/X: @vaulty_protocol
-• Instagram: @vaulty_protocol
-• TikTok: @vaulty_protocol
+    # Try exact match first
+    if query in db_manager.verified_prices:
+        card = db_manager.verified_prices[query]
+        result = price_formatter.format_admin_price_entry(query, card)
+        await update.message.reply_text(result, parse_mode="MarkdownV2")
+        return
 
-**💬 Discord**
-Rejoignez notre communauté !
+    # Search
+    results = db_manager.search_cards(query, limit=5)
+    if not results:
+        await update.message.reply_text(f"No cards found matching `{escape_md(query)}`", parse_mode="MarkdownV2")
+        return
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    response = "*Search Results:*\n\n"
+    for card_id, card in results:
+        response += f"• `{escape_md(card_id)}`\n  {escape_md(card.get('name', 'N/A'))}\n\n"
 
-**📍 Localisation**
-Suisse 🇨🇭
+    await update.message.reply_text(response, parse_mode="MarkdownV2")
 
-**⏰ Horaires**
-Lun-Ven: 9h-18h (CET)
-Réponse sous 24-48h
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━
-🔐 *Vaulty Protocol - Swiss Blockchain Authentication*
-"""
-    keyboard = [
-        [
-            InlineKeyboardButton("🌐 Site Web", url="https://vaultyprotocol.tech"),
-            InlineKeyboardButton("📧 Email", url="mailto:contact@vaultyprotocol.tech"),
-        ],
-        [
-            InlineKeyboardButton("🐦 Twitter", url="https://x.com/vaulty_protocol"),
-            InlineKeyboardButton("📱 Instagram", url="https://instagram.com/vaulty_protocol"),
-        ],
-    ]
-    await update.message.reply_text(contact_text, parse_mode="Markdown", reply_markup=InlineKeyboardMarkup(keyboard))
+async def oldprices_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Admin command to list stale prices."""
+    user_id = update.effective_user.id
+    if not is_admin(user_id):
+        await update.message.reply_text("⛔ Admin only command\\.", parse_mode="MarkdownV2")
+        return
+
+    if not PRICING_AVAILABLE or not db_manager:
+        await update.message.reply_text("❌ Pricing system not available\\.", parse_mode="MarkdownV2")
+        return
+
+    stale = db_manager.get_stale_prices(days=90)
+
+    if not stale:
+        await update.message.reply_text("✅ All prices are up to date\\!", parse_mode="MarkdownV2")
+        return
+
+    response = f"*⚠️ Stale Prices \\(\\>90 days\\):* {len(stale)} entries\n\n"
+    for card_id, name, grade, last_ver in stale[:20]:  # Limit to 20
+        response += f"• `{escape_md(card_id[:30])}`\n  {escape_md(grade)} \\- last: {escape_md(last_ver)}\n"
+
+    if len(stale) > 20:
+        response += f"\n_\\.\\.\\. and {len(stale) - 20} more_"
+
+    await update.message.reply_text(response, parse_mode="MarkdownV2")
+
+
+async def exportdb_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Admin command to export database."""
+    user_id = update.effective_user.id
+    if not is_admin(user_id):
+        await update.message.reply_text("⛔ Admin only command\\.", parse_mode="MarkdownV2")
+        return
+
+    if not PRICING_AVAILABLE or not db_manager:
+        await update.message.reply_text("❌ Pricing system not available\\.", parse_mode="MarkdownV2")
+        return
+
+    export_data = db_manager.export_database()
+    json_str = json.dumps(export_data, indent=2, ensure_ascii=False)
+
+    # Send as document
+    from io import BytesIO
+    file_bytes = BytesIO(json_str.encode('utf-8'))
+    file_bytes.name = "vaulty_database_export.json"
+
+    await update.message.reply_document(
+        document=file_bytes,
+        caption="📦 Database export"
+    )
+
+
+# ==================== PHOTO HANDLERS ====================
 
 async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Traite les photos"""
-    user = update.message.from_user
-    logger.info(f"Photo reçue de {user.username or user.id}")
+    """Handle incoming photos."""
+    user = update.effective_user
+    logger.info(f"Received photo from user {user.id} ({user.username})")
 
-    waiting = await update.message.reply_text(
-        "🔄 **Analyse en cours...**\n\n"
-        "⏳ Identification de la carte\n"
-        "⏳ Évaluation de l'état\n"
-        "⏳ Recherche des prix de marché\n\n"
-        "_Propulsé par Vaulty Protocol 🇨🇭_",
-        parse_mode="Markdown"
+    status_message = await update.message.reply_text(
+        get_analyzing_message(),
+        parse_mode="MarkdownV2"
     )
 
     try:
+        # Get the largest photo
         photo = update.message.photo[-1]
-        photo_file = await photo.get_file()
-        image_bytes = await photo_file.download_as_bytearray()
+        file = await context.bot.get_file(photo.file_id)
 
-        result = await analyze_card(bytes(image_bytes))
-        await waiting.delete()
+        # Download photo to memory
+        photo_bytes = BytesIO()
+        await file.download_to_memory(photo_bytes)
+        photo_data = photo_bytes.getvalue()
 
-        # Envoyer résultat
-        if len(result) > 4000:
-            for i in range(0, len(result), 4000):
-                await update.message.reply_text(result[i:i+4000], parse_mode="Markdown")
-        else:
-            await update.message.reply_text(result, parse_mode="Markdown")
+        # Analyze the card with AI
+        analysis = await analyze_card_image(photo_data, "image/jpeg")
 
-        # Extraire les infos de la carte pour générer les URLs de recherche
-        card_info = extract_card_info(result)
-        search_urls = generate_search_urls(
-            card_info.get("card_name", ""),
-            card_info.get("set_name", ""),
-            card_info.get("game", "")
+        # Get price estimates from our database
+        price_estimates = None
+        if PRICING_AVAILABLE and price_estimator:
+            ident = analysis.get("identification", {})
+            price_estimates = price_estimator.estimate_all_grades(ident)
+
+        # Format and send result
+        result_text = format_analysis_result(analysis, price_estimates)
+
+        await status_message.delete()
+        await update.message.reply_text(result_text, parse_mode="MarkdownV2")
+
+        logger.info(f"Successfully analyzed card for user {user.id}")
+
+    except ValueError as e:
+        await status_message.edit_text(
+            f"❌ *Error:* {escape_md(str(e))}\n\nPlease try again\\.",
+            parse_mode="MarkdownV2"
         )
+        logger.error(f"ValueError for user {user.id}: {e}")
 
-        # Message avec liens pour vérifier les prix réels
-        card_display = card_info.get("card_name", "cette carte")
-        price_check_message = f"""
-━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-🔎 **VÉRIFIEZ LE PRIX RÉEL**
-
-Cliquez ci-dessous pour voir les **ventes récentes** de **{card_display}**:
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-💎 **PROTÉGEZ CETTE CARTE !**
-
-Certification Vaulty Protocol:
-✅ Vendez **25-50% plus cher**
-✅ Certificat **blockchain**
-✅ Protection **NFC + Hologramme**
-
-🎁 **-10% avec TELEGRAM10**
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━
-"""
-        keyboard = [
-            [
-                InlineKeyboardButton("🔍 eBay SOLD (Prix réels)", url=search_urls["ebay_sold"]),
-            ],
-            [
-                InlineKeyboardButton("🛒 CardMarket", url=search_urls.get("cardmarket", "https://www.cardmarket.com/")),
-                InlineKeyboardButton("🛒 TCGPlayer", url=search_urls.get("tcgplayer", "https://www.tcgplayer.com/")),
-            ],
-            [InlineKeyboardButton("🔐 Certifier cette carte", url="https://vaultyprotocol.tech/pass-services/")],
-            [
-                InlineKeyboardButton("💰 Nos tarifs", url="https://vaultyprotocol.tech/pass-services/"),
-                InlineKeyboardButton("🌐 Vaulty", url="https://vaultyprotocol.tech/"),
-            ],
-        ]
-        await update.message.reply_text(
-            price_check_message,
-            parse_mode="Markdown",
-            reply_markup=InlineKeyboardMarkup(keyboard)
+    except anthropic.APIError as e:
+        await status_message.edit_text(
+            "❌ *API Error*\n\nAI service temporarily unavailable\\. Please try again later\\.",
+            parse_mode="MarkdownV2"
         )
+        logger.error(f"API error for user {user.id}: {e}")
 
     except Exception as e:
-        logger.error(f"Erreur: {e}")
-        await waiting.edit_text(
-            f"❌ **Erreur lors de l'analyse**\n\n"
-            f"Détails: {str(e)}\n\n"
-            f"Réessayez ou visitez:\n"
-            f"🌐 **vaultyprotocol.tech**",
-            parse_mode="Markdown"
+        await status_message.edit_text(
+            "❌ *Unexpected Error*\n\nSomething went wrong\\. Please try again\\.",
+            parse_mode="MarkdownV2"
+        )
+        logger.error(f"Unexpected error for user {user.id}: {e}", exc_info=True)
+
+
+async def handle_document(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Handle documents (in case user sends image as file)."""
+    document = update.message.document
+
+    if document.mime_type and document.mime_type.startswith("image/"):
+        user = update.effective_user
+        logger.info(f"Received document image from user {user.id}")
+
+        status_message = await update.message.reply_text(
+            get_analyzing_message(),
+            parse_mode="MarkdownV2"
         )
 
-async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Gère les messages texte"""
-    text = update.message.text.lower()
+        try:
+            file = await context.bot.get_file(document.file_id)
+            photo_bytes = BytesIO()
+            await file.download_to_memory(photo_bytes)
+            photo_data = photo_bytes.getvalue()
 
-    # Réponses intelligentes en français
-    if any(word in text for word in ["bonjour", "salut", "hello", "hi", "coucou", "hey"]):
-        response = """
-👋 **Bonjour !** Bienvenue sur Vaulty Card Analyzer !
+            analysis = await analyze_card_image(photo_data, document.mime_type)
 
-📷 Envoyez-moi une photo de votre carte pour:
-• Identification complète
-• Estimation de prix
-• Recommandation personnalisée
+            price_estimates = None
+            if PRICING_AVAILABLE and price_estimator:
+                ident = analysis.get("identification", {})
+                price_estimates = price_estimator.estimate_all_grades(ident)
 
-🌐 Découvrez nos services: vaultyprotocol.tech
-"""
-    elif any(word in text for word in ["merci", "thanks", "super", "génial", "cool", "parfait"]):
-        response = """
-🙏 **Avec plaisir !**
+            result_text = format_analysis_result(analysis, price_estimates)
 
-N'hésitez pas à:
-• 📷 Analyser d'autres cartes
-• 🔐 Découvrir nos certifications
-• 🛒 Visiter notre marketplace
+            await status_message.delete()
+            await update.message.reply_text(result_text, parse_mode="MarkdownV2")
 
-🌐 **vaultyprotocol.tech**
-"""
-    elif any(word in text for word in ["prix", "tarif", "coût", "combien", "coute"]):
-        response = """
-💰 **Nos tarifs commencent à 15 CHF !**
-
-🥉 Bronze: dès 15 CHF
-🥈 Argent: dès 35 CHF
-🥇 Or: dès 75 CHF
-
-🎁 **-10% avec TELEGRAM10**
-
-Tapez /prix pour plus de détails !
-"""
-    elif any(word in text for word in ["faux", "fake", "contrefaçon", "arnaque", "scam"]):
-        response = """
-🛡️ **Protégez-vous des contrefaçons !**
-
-~30% des cartes gradées en ligne sont fausses !
-
-Vaulty Protocol vous protège avec:
-• Empreinte digitale unique
-• Puce NFC cryptographique
-• Certificat blockchain
-• Hologramme VOID
-
-🌐 **vaultyprotocol.tech/pass-services/**
-"""
-    elif any(word in text for word in ["aide", "help", "comment", "quoi"]):
-        response = """
-📖 **Besoin d'aide ?**
-
-📷 **Pour analyser:** Envoyez une photo
-🎯 **Commandes:** /help, /services, /prix
-
-🌐 Plus d'infos: vaultyprotocol.tech
-"""
+        except Exception as e:
+            await status_message.edit_text(
+                f"❌ *Error analyzing image*\n\n_{escape_md(str(e))}_",
+                parse_mode="MarkdownV2"
+            )
+            logger.error(f"Error processing document: {e}")
     else:
-        response = """
-🤔 Je ne comprends que les photos de cartes !
+        await update.message.reply_text(
+            "⚠️ Please send an image file \\(JPEG, PNG, WebP\\)\\.",
+            parse_mode="MarkdownV2"
+        )
 
-📷 **Envoyez une image** pour l'analyser.
 
-🎯 **Commandes utiles:**
-• /help - Aide
-• /services - Nos services
-• /prix - Tarifs
+async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Handle text messages."""
+    await update.message.reply_text(
+        "📸 Please send me a *photo* of your trading card to analyze\\!\n\nUse /help for more information\\.",
+        parse_mode="MarkdownV2"
+    )
 
-🌐 **vaultyprotocol.tech**
-"""
-
-    keyboard = [[InlineKeyboardButton("🌐 Visiter le site", url="https://vaultyprotocol.tech")]]
-    await update.message.reply_text(response, parse_mode="Markdown", reply_markup=InlineKeyboardMarkup(keyboard))
 
 def main() -> None:
-    """Lance le bot"""
-    if not TELEGRAM_BOT_TOKEN:
-        print("❌ TELEGRAM_BOT_TOKEN non configuré!")
-        return
-    if not ANTHROPIC_API_KEY:
-        print("⚠️ ANTHROPIC_API_KEY non configuré!")
+    """Start the bot."""
+    token = os.environ.get("TELEGRAM_BOT_TOKEN")
+    if not token:
+        logger.error("TELEGRAM_BOT_TOKEN environment variable not set")
+        print("❌ Error: TELEGRAM_BOT_TOKEN environment variable not set")
+        sys.exit(1)
 
-    print("🎴 Vaulty Card Analyzer - Bot Telegram")
-    print("🇨🇭 Version Française avec Promotion")
-    print("✅ Démarrage...")
+    if not os.environ.get("ANTHROPIC_API_KEY"):
+        logger.error("ANTHROPIC_API_KEY environment variable not set")
+        print("❌ Error: ANTHROPIC_API_KEY environment variable not set")
+        sys.exit(1)
 
-    app = Application.builder().token(TELEGRAM_BOT_TOKEN).build()
+    print("""
+╔══════════════════════════════════════════════════════════════╗
+║              VAULTY CARD ANALYZER - TELEGRAM BOT              ║
+║                   Powered by Claude Vision                    ║
+║                  v2.0 - Verified Price Database               ║
+╚══════════════════════════════════════════════════════════════╝
+    """)
 
-    # Commandes
-    app.add_handler(CommandHandler("start", start))
-    app.add_handler(CommandHandler("help", help_command))
-    app.add_handler(CommandHandler("aide", help_command))
-    app.add_handler(CommandHandler("services", services_command))
-    app.add_handler(CommandHandler("prix", prix_command))
-    app.add_handler(CommandHandler("tarifs", prix_command))
-    app.add_handler(CommandHandler("verifier", verifier_command))
-    app.add_handler(CommandHandler("verify", verifier_command))
-    app.add_handler(CommandHandler("contact", contact_command))
+    if PRICING_AVAILABLE:
+        stats = db_manager.get_stats()
+        print(f"📊 Loaded {stats['total_cards']} cards with {stats['total_price_entries']} verified prices")
+    else:
+        print("⚠️  Pricing system not available - using AI estimates only")
 
-    # Handlers
-    app.add_handler(MessageHandler(filters.PHOTO, handle_photo))
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text))
+    print("🚀 Starting bot...")
 
-    print("✅ Bot prêt ! En attente de messages...")
-    app.run_polling(allowed_updates=Update.ALL_TYPES)
+    application = Application.builder().token(token).build()
+
+    # Public commands
+    application.add_handler(CommandHandler("start", start_command))
+    application.add_handler(CommandHandler("help", help_command))
+    application.add_handler(CommandHandler("about", about_command))
+    application.add_handler(CommandHandler("stats", stats_command))
+
+    # Admin commands
+    application.add_handler(CommandHandler("addprice", addprice_command))
+    application.add_handler(CommandHandler("checkprice", checkprice_command))
+    application.add_handler(CommandHandler("oldprices", oldprices_command))
+    application.add_handler(CommandHandler("exportdb", exportdb_command))
+
+    # Message handlers
+    application.add_handler(MessageHandler(filters.PHOTO, handle_photo))
+    application.add_handler(MessageHandler(filters.Document.ALL, handle_document))
+    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text))
+
+    print("✅ Bot is running! Press Ctrl+C to stop.")
+    application.run_polling(allowed_updates=Update.ALL_TYPES)
+
 
 if __name__ == "__main__":
     main()
