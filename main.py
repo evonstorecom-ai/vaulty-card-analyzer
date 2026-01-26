@@ -46,7 +46,7 @@ def is_admin(user_id: int) -> bool:
     """Vérifie si l'utilisateur est admin"""
     return user_id in ADMIN_IDS
 
-# Prompt d'analyse en FRANÇAIS - Focus sur identification précise
+# Prompt d'analyse en FRANÇAIS - IDENTIFICATION ET ÉTAT UNIQUEMENT (pas de prix)
 ANALYSIS_PROMPT = """Tu es un expert certifié en cartes à collectionner avec 20+ ans d'expérience.
 
 ⚠️ RÈGLES ABSOLUES:
@@ -55,10 +55,7 @@ ANALYSIS_PROMPT = """Tu es un expert certifié en cartes à collectionner avec 2
    - Lis CHAQUE texte visible sur la carte (nom, set, numéro, année, rareté)
    - Identifie le JEU: Pokémon, One Piece TCG, Yu-Gi-Oh, Magic, Dragon Ball, Sports (NBA, NFL, etc.)
    - Identifie le SET EXACT avec son code (ex: EB01, SV04, etc.)
-   - Identifie la RARETÉ/PARALLÈLE exact:
-     * One Piece: Common, Uncommon, Rare, Super Rare, Secret Rare, Manga Rare, Treasure Rare, Special Art
-     * Pokémon: Common, Uncommon, Rare, Holo Rare, V, VMAX, VSTAR, Alt Art, Special Art Rare, Hyper Rare
-     * Sports: Base, Prizm, Silver Prizm, Gold, Numbered /99 /25 /10 /1
+   - Identifie la RARETÉ/PARALLÈLE exact
    - Si gradée, lis le LABEL COMPLET (compagnie, note, numéro certification)
 
 2. **ÉTAT - SOIS CRITIQUE**:
@@ -66,50 +63,26 @@ ANALYSIS_PROMPT = """Tu es un expert certifié en cartes à collectionner avec 2
    - Note les défauts visibles
    - Donne une note PSA équivalente réaliste
 
-3. **PRIX - SOIS HONNÊTE**:
-   - Indique "VÉRIFIEZ SUR EBAY SOLD" car tu n'as PAS accès aux prix en temps réel
-   - Donne une FOURCHETTE INDICATIVE basée sur la rareté de la carte
-   - Ne donne JAMAIS de prix précis comme si c'était la réalité
+3. **PAS DE PRIX** - NE DONNE AUCUNE ESTIMATION DE PRIX (le système le fait automatiquement)
 
-Réponds EN FRANÇAIS avec ce format:
+Réponds EN FRANÇAIS avec ce format COMPACT:
 
-🎴 **IDENTIFICATION COMPLÈTE**
-• Jeu: [Pokémon / One Piece TCG / Yu-Gi-Oh / Magic / Sports / etc.]
-• Carte: [Nom EXACT visible sur la carte]
-• Set: [Nom complet + code, ex: "Memorial Collection EB01"]
-• Numéro: [Code exact, ex: EB01-051]
-• Rareté: [Rareté EXACTE - Common/Rare/Super Rare/Treasure Rare/etc.]
-• Parallèle: [Si applicable: Manga Rare, Alt Art, Gold Border, etc.]
-• Langue: [FR/EN/JP]
-• Gradée: [Non / Oui → Compagnie + Note + N° certification]
+🎴 **[NOM DU JOUEUR/PERSONNAGE]**
+━━━━━━━━━━━━━━━━━━━━
 
-📊 **ÉVALUATION DE L'ÉTAT**
-• Note estimée: [X/10] (équivalent PSA)
-• Centrage: [XX/XX] - [Excellent/Bon/Moyen/Décentré]
-• Coins: [Description précise]
-• Surface: [Description précise]
-• Bordures: [Description précise]
-• Défauts: [Liste ou "Aucun défaut majeur visible"]
+📦 Set: [Nom complet + code]
+🔢 Numéro: [Code exact]
+✨ Rareté: [Rareté + Parallèle si applicable]
+🌍 Langue: [FR/EN/JP]
+🏷️ Gradée: [Non / Oui → Compagnie + Note]
 
-💰 **ESTIMATION INDICATIVE**
+📊 **ÉTAT ESTIMÉ: [X/10]**
+• Centrage: [Description courte]
+• Surface: [Description courte]
+• Coins/Bordures: [Description courte]
+• Défauts: [Liste courte ou "Aucun"]
 
-⚠️ **IMPORTANT**: Ces prix sont des ESTIMATIONS. Vérifiez les ventes réelles sur eBay Sold !
-
-📦 **RAW** (non gradée): [Fourchette large basée sur la rareté]
-🏆 **PSA 10**: [Estimation si cette carte est recherchée gradée]
-🏅 **PSA 9**: [Estimation]
-
-🔎 **Pour le prix RÉEL**: Recherchez "[Nom carte] [Set] [Rareté] sold" sur eBay
-
-📈 **POTENTIEL**: [Cette carte est-elle recherchée ? Populaire ? Rare ?]
-
-💡 **RECOMMANDATION**: [CONSERVER / VENDRE / FAIRE GRADER]
-[Explication basée sur la rareté et l'état]
-
-💎 **CONSEIL VAULTY**: [Conseil sur la protection/certification]
-
----
-🔐 *Analyse Vaulty Protocol • vaultyprotocol.tech*
+💡 **CONSEIL**: [CONSERVER / VENDRE / FAIRE GRADER - 1 phrase max]
 """
 
 
@@ -545,44 +518,19 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
             card_info.get("game", "")
         )
 
-        # Message avec liens pour vérifier les prix réels
-        card_display = card_info.get("card_name", "cette carte")
-        price_check_message = f"""
-━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-🔎 **VÉRIFIEZ LE PRIX RÉEL**
-
-Cliquez ci-dessous pour voir les **ventes récentes** de **{card_display}**:
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-💎 **PROTÉGEZ CETTE CARTE !**
-
-Certification Vaulty Protocol:
-✅ Vendez **25-50% plus cher**
-✅ Certificat **blockchain**
-✅ Protection **NFC + Hologramme**
-
-🎁 **-10% avec TELEGRAM10**
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━
-"""
+        # Boutons de liens (message court)
         keyboard = [
             [
-                InlineKeyboardButton("🔍 eBay SOLD (Prix réels)", url=search_urls["ebay_sold"]),
-            ],
-            [
+                InlineKeyboardButton("🔍 eBay Sold", url=search_urls["ebay_sold"]),
                 InlineKeyboardButton("🛒 CardMarket", url=search_urls.get("cardmarket", "https://www.cardmarket.com/")),
-                InlineKeyboardButton("🛒 TCGPlayer", url=search_urls.get("tcgplayer", "https://www.tcgplayer.com/")),
             ],
-            [InlineKeyboardButton("🔐 Certifier cette carte", url="https://vaultyprotocol.tech/pass-services/")],
             [
-                InlineKeyboardButton("💰 Nos tarifs", url="https://vaultyprotocol.tech/pass-services/"),
+                InlineKeyboardButton("🔐 Certifier", url="https://vaultyprotocol.tech/pass-services/"),
                 InlineKeyboardButton("🌐 Vaulty", url="https://vaultyprotocol.tech/"),
             ],
         ]
         await update.message.reply_text(
-            price_check_message,
+            "━━━━━━━━━━━━━━━━━━━━\n🔗 **Liens utiles**\n🎁 -10% avec **TELEGRAM10**",
             parse_mode="Markdown",
             reply_markup=InlineKeyboardMarkup(keyboard)
         )
