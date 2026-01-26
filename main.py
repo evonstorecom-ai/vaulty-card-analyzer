@@ -82,7 +82,12 @@ Réponds EN FRANÇAIS avec ce format COMPACT:
 • Coins/Bordures: [Description courte]
 • Défauts: [Liste courte ou "Aucun"]
 
-💡 **CONSEIL**: [CONSERVER / VENDRE / FAIRE GRADER - 1 phrase max]
+📈 **POTENTIEL**: [Carte recherchée ? Populaire ? Rare ? Tendance du marché - 1-2 phrases]
+
+💡 **CONSEIL**: [CONSERVER / VENDRE / FAIRE GRADER - avec justification courte]
+
+💎 **CONSEIL VAULTY**: [Conseil sur la protection ou certification - 1 phrase]
+🔗 vaultyprotocol.tech
 """
 
 
@@ -518,19 +523,28 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
             card_info.get("game", "")
         )
 
-        # Boutons de liens (message court)
+        # Message avec liens et nom de la carte
+        card_display = card_info.get("card_name", "cette carte")
+        links_message = f"""━━━━━━━━━━━━━━━━━━━━
+🔎 **VÉRIFIER LES PRIX RÉELS**
+Recherchez **{card_display}** sur eBay Sold
+
+🎁 **-10%** sur votre certification avec **TELEGRAM10**
+"""
         keyboard = [
             [
-                InlineKeyboardButton("🔍 eBay Sold", url=search_urls["ebay_sold"]),
+                InlineKeyboardButton(f"🔍 eBay Sold", url=search_urls["ebay_sold"]),
                 InlineKeyboardButton("🛒 CardMarket", url=search_urls.get("cardmarket", "https://www.cardmarket.com/")),
             ],
             [
-                InlineKeyboardButton("🔐 Certifier", url="https://vaultyprotocol.tech/pass-services/"),
-                InlineKeyboardButton("🌐 Vaulty", url="https://vaultyprotocol.tech/"),
+                InlineKeyboardButton("🔐 Certifier cette carte", url="https://vaultyprotocol.tech/pass-services/"),
+            ],
+            [
+                InlineKeyboardButton("🌐 vaultyprotocol.tech", url="https://vaultyprotocol.tech/"),
             ],
         ]
         await update.message.reply_text(
-            "━━━━━━━━━━━━━━━━━━━━\n🔗 **Liens utiles**\n🎁 -10% avec **TELEGRAM10**",
+            links_message,
             parse_mode="Markdown",
             reply_markup=InlineKeyboardMarkup(keyboard)
         )
