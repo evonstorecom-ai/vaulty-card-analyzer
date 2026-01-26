@@ -1,0 +1,213 @@
+{
+  "_metadata": {
+    "description": "Classification des joueurs/personnages par tier pour le calcul des prix",
+    "version": "1.0",
+    "last_updated": "2025-01-26"
+  },
+  "tiers": {
+    "GOAT": {
+      "multiplier": 10.0,
+      "description": "Légendes absolues, cartes très recherchées"
+    },
+    "superstar": {
+      "multiplier": 5.0,
+      "description": "Stars majeures, très populaires"
+    },
+    "star": {
+      "multiplier": 2.0,
+      "description": "Bons joueurs actuels"
+    },
+    "role_player": {
+      "multiplier": 1.0,
+      "description": "Joueurs standards"
+    },
+    "bust": {
+      "multiplier": 0.3,
+      "description": "Joueurs décevants, peu de demande"
+    },
+    "unknown": {
+      "multiplier": 0.5,
+      "description": "Joueur non classifié"
+    }
+  },
+  "players": {
+    "basketball": {
+      "GOAT": [
+        "Michael Jordan",
+        "LeBron James",
+        "Kobe Bryant",
+        "Magic Johnson",
+        "Larry Bird",
+        "Shaquille O'Neal",
+        "Tim Duncan",
+        "Kareem Abdul-Jabbar"
+      ],
+      "superstar": [
+        "Dwyane Wade",
+        "Stephen Curry",
+        "Kevin Durant",
+        "Giannis Antetokounmpo",
+        "Luka Doncic",
+        "Ja Morant",
+        "Anthony Edwards",
+        "Victor Wembanyama",
+        "Dirk Nowitzki",
+        "Chris Paul",
+        "Kawhi Leonard",
+        "Paul George",
+        "Damian Lillard",
+        "Jayson Tatum",
+        "Zion Williamson"
+      ],
+      "star": [
+        "Chris Bosh",
+        "Kyrie Irving",
+        "Russell Westbrook",
+        "James Harden",
+        "Anthony Davis",
+        "Devin Booker",
+        "Trae Young",
+        "Donovan Mitchell",
+        "Shai Gilgeous-Alexander"
+      ],
+      "bust": [
+        "Darko Milicic",
+        "Anthony Bennett",
+        "Kwame Brown",
+        "Greg Oden",
+        "Hasheem Thabeet"
+      ]
+    },
+    "football": {
+      "GOAT": [
+        "Patrick Mahomes",
+        "Tom Brady",
+        "Joe Montana",
+        "Jerry Rice",
+        "Jim Brown",
+        "Lawrence Taylor"
+      ],
+      "superstar": [
+        "Josh Allen",
+        "Lamar Jackson",
+        "Justin Herbert",
+        "Joe Burrow",
+        "Jalen Hurts",
+        "Travis Kelce",
+        "Tyreek Hill",
+        "Justin Jefferson",
+        "Ja'Marr Chase"
+      ],
+      "star": [
+        "Tua Tagovailoa",
+        "Trevor Lawrence",
+        "CeeDee Lamb",
+        "Amon-Ra St. Brown",
+        "Brock Purdy"
+      ]
+    },
+    "soccer": {
+      "GOAT": [
+        "Lionel Messi",
+        "Cristiano Ronaldo",
+        "Pelé",
+        "Diego Maradona",
+        "Zinedine Zidane"
+      ],
+      "superstar": [
+        "Kylian Mbappé",
+        "Erling Haaland",
+        "Neymar",
+        "Vinicius Jr",
+        "Jude Bellingham",
+        "Lamine Yamal"
+      ],
+      "star": [
+        "Mohamed Salah",
+        "Kevin De Bruyne",
+        "Robert Lewandowski",
+        "Harry Kane"
+      ]
+    },
+    "pokemon": {
+      "GOAT": [
+        "Charizard",
+        "Pikachu",
+        "Mewtwo",
+        "Mew",
+        "Lugia"
+      ],
+      "superstar": [
+        "Blastoise",
+        "Venusaur",
+        "Gengar",
+        "Gyarados",
+        "Dragonite",
+        "Rayquaza",
+        "Umbreon"
+      ],
+      "star": [
+        "Alakazam",
+        "Machamp",
+        "Snorlax",
+        "Eevee",
+        "Jigglypuff"
+      ]
+    },
+    "one_piece": {
+      "GOAT": [
+        "Monkey D. Luffy",
+        "Shanks",
+        "Roronoa Zoro",
+        "Portgas D. Ace"
+      ],
+      "superstar": [
+        "Nami",
+        "Nico Robin",
+        "Trafalgar Law",
+        "Boa Hancock",
+        "Kaido",
+        "Charlotte Katakuri"
+      ],
+      "star": [
+        "Sanji",
+        "Usopp",
+        "Tony Tony Chopper",
+        "Brook",
+        "Franky"
+      ]
+    },
+    "yugioh": {
+      "GOAT": [
+        "Blue-Eyes White Dragon",
+        "Dark Magician",
+        "Exodia",
+        "Black Luster Soldier"
+      ],
+      "superstar": [
+        "Red-Eyes Black Dragon",
+        "Dark Magician Girl",
+        "Stardust Dragon",
+        "Blue-Eyes Ultimate Dragon"
+      ]
+    },
+    "magic": {
+      "GOAT": [
+        "Black Lotus",
+        "Ancestral Recall",
+        "Time Walk",
+        "Mox Sapphire",
+        "Mox Ruby",
+        "Mox Jet",
+        "Mox Pearl",
+        "Mox Emerald"
+      ],
+      "superstar": [
+        "Jace, the Mind Sculptor",
+        "Liliana of the Veil",
+        "Tarmogoyf",
+        "Force of Will"
+      ]
+    }
+  }
+}
