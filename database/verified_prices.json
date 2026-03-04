@@ -1,10 +1,70 @@
 {
   "_metadata": {
-    "version": "1.1",
-    "last_updated": "2025-01-26",
+    "version": "1.2",
+    "last_updated": "2026-03",
     "currency": "CHF"
   },
   "cards": {
+    "soccer_ronaldo_topps_chrome_ucl_2019_refractor_100": {
+      "name": "Cristiano Ronaldo 2019 Topps Chrome UCL Refractor #100",
+      "game": "Soccer",
+      "set": "2019 Topps Chrome UCL",
+      "number": "100",
+      "rarity": "Refractor",
+      "prices": {
+        "PSA_10": {"min": 70, "max": 90}
+      },
+      "last_verified": "2026-01",
+      "notes": "Vendu 80 CHF - Jan 2026"
+    },
+    "soccer_guler_donruss_rookie_kings_2324_bronze_9": {
+      "name": "Arda Güler 2023-24 Donruss Rookie Kings Bronze #9",
+      "game": "Soccer",
+      "set": "2023-24 Panini Donruss",
+      "number": "9",
+      "rarity": "Rookie Kings Bronze",
+      "prices": {
+        "RAW": {"min": 1, "max": 3}
+      },
+      "last_verified": "2026-01",
+      "notes": "Vendu 1.75 CHF - Jan 2026"
+    },
+    "soccer_brandt_topps_transcendent_2020_auto_75": {
+      "name": "Julian Brandt 2020 Topps Transcendent Auto /75",
+      "game": "Soccer",
+      "set": "2020 Topps Transcendent",
+      "number": "JB",
+      "rarity": "Auto /75",
+      "prices": {
+        "PSA_9": {"min": 35, "max": 45}
+      },
+      "last_verified": "2026-01",
+      "notes": "Vendu 39.95 CHF - Jan 2026"
+    },
+    "nba_curry_revolution_supernova_2018_2": {
+      "name": "Stephen Curry 2018-19 Panini Revolution Supernova #2",
+      "game": "Basketball",
+      "set": "2018-19 Panini Revolution",
+      "number": "2",
+      "rarity": "Supernova",
+      "prices": {
+        "PSA_9": {"min": 20, "max": 30}
+      },
+      "last_verified": "2026-01",
+      "notes": "Vendu 25 CHF - Jan 2026"
+    },
+    "lorcana_beast_enchanted_de2_210": {
+      "name": "Beast 2023 Disney Lorcana DE 2 Enchanted #210",
+      "game": "Disney Lorcana",
+      "set": "Disney Lorcana DE 2",
+      "number": "210",
+      "rarity": "Enchanted",
+      "prices": {
+        "PSA_10": {"min": 40, "max": 55}
+      },
+      "last_verified": "2026-01",
+      "notes": "Vendu 48 CHF - Jan 2026"
+    },
     "pokemon_charizard_base_4": {
       "name": "Charizard Base Set #4",
       "game": "Pokemon",
