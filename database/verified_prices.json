@@ -233,6 +233,42 @@
       "last_verified": "2026-01",
       "notes": "Vendu 48 CHF - Jan 2026"
     },
+    "pokemon_mewtwo_gx_hidden_fates_sv59": {
+      "name": "Mewtwo GX Hidden Fates Shiny Vault #SV59",
+      "game": "Pokemon",
+      "set": "2019 Hidden Fates Shiny Vault",
+      "number": "SV59",
+      "rarity": "Shiny GX",
+      "prices": {
+        "PSA_10": {"min": 30, "max": 40}
+      },
+      "last_verified": "2026-03",
+      "notes": "Vendu 35 CHF - Mar 2026"
+    },
+    "pokemon_umbreon_gx_hidden_fates_sv69": {
+      "name": "Umbreon GX Hidden Fates Shiny Vault #SV69",
+      "game": "Pokemon",
+      "set": "2019 Hidden Fates Shiny Vault",
+      "number": "SV69",
+      "rarity": "Shiny GX",
+      "prices": {
+        "PSA_10": {"min": 80, "max": 95}
+      },
+      "last_verified": "2026-03",
+      "notes": "Vendu 86 CHF - Mar 2026"
+    },
+    "pokemon_charizard_gx_hidden_fates_sv49": {
+      "name": "Charizard GX Hidden Fates Shiny Vault #SV49",
+      "game": "Pokemon",
+      "set": "2019 Hidden Fates Shiny Vault",
+      "number": "SV49",
+      "rarity": "Shiny GX",
+      "prices": {
+        "PSA_9": {"min": 70, "max": 90}
+      },
+      "last_verified": "2026-03",
+      "notes": "Vendu 79 CHF - Mar 2026"
+    },
     "pokemon_charizard_base_4": {
       "name": "Charizard Base Set #4",
       "game": "Pokemon",
