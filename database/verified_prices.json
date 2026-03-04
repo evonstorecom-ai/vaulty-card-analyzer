@@ -113,6 +113,66 @@
       "last_verified": "2026-01",
       "notes": "Vendu 52 CHF - Jan 2026"
     },
+    "pokemon_radiant_charizard_vstar_universe_015": {
+      "name": "Radiant Charizard VStar Universe #015",
+      "game": "Pokemon",
+      "set": "2022 SWSH VStar Universe JPN",
+      "number": "015",
+      "rarity": "Radiant Rare",
+      "prices": {
+        "PSA_10": {"min": 70, "max": 85}
+      },
+      "last_verified": "2026-01",
+      "notes": "Vendu 77.50 CHF - Jan 2026"
+    },
+    "soccer_yamal_topps_rc_base": {
+      "name": "Lamine Yamal RC Base Cards",
+      "game": "Soccer",
+      "set": "2023-24 Topps/Panini",
+      "number": "-",
+      "rarity": "Base RC",
+      "prices": {
+        "RAW": {"min": 5, "max": 10}
+      },
+      "last_verified": "2026-01",
+      "notes": "Lot 3 cartes vendu 23 CHF (~8 CHF/carte) - Jan 2026"
+    },
+    "soccer_salah_topps_gold_elite_99": {
+      "name": "Mohamed Salah Topps Gold Elite /99",
+      "game": "Soccer",
+      "set": "Topps Gold",
+      "number": "75/99",
+      "rarity": "Gold Elite /99",
+      "prices": {
+        "RAW": {"min": 2, "max": 5}
+      },
+      "last_verified": "2026-01",
+      "notes": "Vendu 3 CHF - Jan 2026"
+    },
+    "soccer_yamal_messi_topps_now_2025_2": {
+      "name": "Lamine Yamal x Lionel Messi 2025 Topps Now #2",
+      "game": "Soccer",
+      "set": "2025 Topps Now FC Barcelona",
+      "number": "2",
+      "rarity": "Topps Now",
+      "prices": {
+        "PSA_10": {"min": 70, "max": 90}
+      },
+      "last_verified": "2026-01",
+      "notes": "Vendu 80 CHF - Jan 2026"
+    },
+    "soccer_zaire_emery_topps_chrome_pulsar_135": {
+      "name": "Warren Zaire-Emery 2023 Topps Chrome Pulsar RC #135",
+      "game": "Soccer",
+      "set": "2022-23 Topps Chrome UCC",
+      "number": "135",
+      "rarity": "Pulsar Refractor RC",
+      "prices": {
+        "PSA_10": {"min": 20, "max": 30}
+      },
+      "last_verified": "2026-01",
+      "notes": "Vendu 25 CHF - Jan 2026"
+    },
     "soccer_ronaldo_topps_chrome_ucl_2019_refractor_100": {
       "name": "Cristiano Ronaldo 2019 Topps Chrome UCL Refractor #100",
       "game": "Soccer",
