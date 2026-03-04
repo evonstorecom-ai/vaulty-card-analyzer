@@ -65,6 +65,54 @@
       "last_verified": "2026-01",
       "notes": "Vendu 97 CHF - Jan 2026"
     },
+    "pokemon_mantine_skyridge_77": {
+      "name": "Mantine Skyridge #77",
+      "game": "Pokemon",
+      "set": "2003 Pokemon Skyridge",
+      "number": "77",
+      "rarity": "Rare",
+      "prices": {
+        "PSA_10": {"min": 28, "max": 40}
+      },
+      "last_verified": "2026-01",
+      "notes": "Vendu 34 CHF - Jan 2026"
+    },
+    "pokemon_raikou_v_crown_zenith_gg41": {
+      "name": "Raikou V Special Illustration Rare Crown Zenith #GG41",
+      "game": "Pokemon",
+      "set": "2023 SWSH Crown Zenith",
+      "number": "GG41",
+      "rarity": "Special Illustration Rare",
+      "prices": {
+        "PSA_9": {"min": 45, "max": 60}
+      },
+      "last_verified": "2026-01",
+      "notes": "Vendu 51 CHF - Jan 2026"
+    },
+    "pokemon_entei_v_crown_zenith_gg36": {
+      "name": "Entei V Special Illustration Rare Crown Zenith #GG36",
+      "game": "Pokemon",
+      "set": "2023 SWSH Crown Zenith German",
+      "number": "GG36",
+      "rarity": "Special Illustration Rare",
+      "prices": {
+        "PSA_9": {"min": 45, "max": 60}
+      },
+      "last_verified": "2026-01",
+      "notes": "Vendu 52 CHF - Jan 2026"
+    },
+    "pokemon_dragonite_ex_evolutions_106": {
+      "name": "Dragonite EX Full Art XY Evolutions #106",
+      "game": "Pokemon",
+      "set": "2016 XY Evolutions",
+      "number": "106",
+      "rarity": "Full Art EX",
+      "prices": {
+        "PSA_9": {"min": 45, "max": 60}
+      },
+      "last_verified": "2026-01",
+      "notes": "Vendu 52 CHF - Jan 2026"
+    },
     "soccer_ronaldo_topps_chrome_ucl_2019_refractor_100": {
       "name": "Cristiano Ronaldo 2019 Topps Chrome UCL Refractor #100",
       "game": "Soccer",
