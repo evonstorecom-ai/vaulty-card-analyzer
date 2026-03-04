@@ -1,10 +1,274 @@
 {
   "_metadata": {
-    "version": "1.1",
-    "last_updated": "2025-01-26",
+    "version": "1.3",
+    "last_updated": "2026-03",
     "currency": "CHF"
   },
   "cards": {
+    "pokemon_unown_v_paradigm_trigger_alt_103": {
+      "name": "Unown V Alt Art Paradigm Trigger #103",
+      "game": "Pokemon",
+      "set": "2022 SWSH Paradigm Trigger JPN",
+      "number": "103",
+      "rarity": "SR Alt Art",
+      "prices": {
+        "PSA_10": {"min": 38, "max": 50}
+      },
+      "last_verified": "2026-01",
+      "notes": "Vendu 44 CHF - Jan 2026"
+    },
+    "pokemon_manaphy_10th_movie_promo_holo": {
+      "name": "Manaphy 10th Movie Promo Holo Japanese",
+      "game": "Pokemon",
+      "set": "2007 Pokemon Japanese 10th Movie Promo",
+      "number": "-",
+      "rarity": "Promo Holo",
+      "prices": {
+        "PSA_10": {"min": 60, "max": 80}
+      },
+      "last_verified": "2026-01",
+      "notes": "Vendu 70 CHF - Jan 2026"
+    },
+    "pokemon_urshifu_v_single_strike_alt_075": {
+      "name": "Urshifu V Alt Art Single Strike Master #075",
+      "game": "Pokemon",
+      "set": "2021 SWSH Single Strike Master JPN",
+      "number": "075",
+      "rarity": "SR Alt Art",
+      "prices": {
+        "PSA_10": {"min": 45, "max": 60}
+      },
+      "last_verified": "2026-01",
+      "notes": "Vendu 51 CHF - Jan 2026"
+    },
+    "nba_wembanyama_mosaic_jam_masters_green_2023_3": {
+      "name": "Victor Wembanyama 2023 Mosaic Jam Masters Green RC #3",
+      "game": "Basketball",
+      "set": "2023-24 Panini Mosaic",
+      "number": "3",
+      "rarity": "Jam Masters Green RC",
+      "prices": {
+        "PSA_10": {"min": 120, "max": 150}
+      },
+      "last_verified": "2026-01",
+      "notes": "Vendu ~134 CHF - Jan 2026"
+    },
+    "pokemon_mega_latios_ex_roaring_skies_102": {
+      "name": "Mega Latios EX Roaring Skies #102",
+      "game": "Pokemon",
+      "set": "2015 XY Roaring Skies",
+      "number": "102",
+      "rarity": "Full Art EX",
+      "prices": {
+        "PSA_8": {"min": 85, "max": 110}
+      },
+      "last_verified": "2026-01",
+      "notes": "Vendu 97 CHF - Jan 2026"
+    },
+    "pokemon_mantine_skyridge_77": {
+      "name": "Mantine Skyridge #77",
+      "game": "Pokemon",
+      "set": "2003 Pokemon Skyridge",
+      "number": "77",
+      "rarity": "Rare",
+      "prices": {
+        "PSA_10": {"min": 28, "max": 40}
+      },
+      "last_verified": "2026-01",
+      "notes": "Vendu 34 CHF - Jan 2026"
+    },
+    "pokemon_raikou_v_crown_zenith_gg41": {
+      "name": "Raikou V Special Illustration Rare Crown Zenith #GG41",
+      "game": "Pokemon",
+      "set": "2023 SWSH Crown Zenith",
+      "number": "GG41",
+      "rarity": "Special Illustration Rare",
+      "prices": {
+        "PSA_9": {"min": 45, "max": 60}
+      },
+      "last_verified": "2026-01",
+      "notes": "Vendu 51 CHF - Jan 2026"
+    },
+    "pokemon_entei_v_crown_zenith_gg36": {
+      "name": "Entei V Special Illustration Rare Crown Zenith #GG36",
+      "game": "Pokemon",
+      "set": "2023 SWSH Crown Zenith German",
+      "number": "GG36",
+      "rarity": "Special Illustration Rare",
+      "prices": {
+        "PSA_9": {"min": 45, "max": 60}
+      },
+      "last_verified": "2026-01",
+      "notes": "Vendu 52 CHF - Jan 2026"
+    },
+    "pokemon_dragonite_ex_evolutions_106": {
+      "name": "Dragonite EX Full Art XY Evolutions #106",
+      "game": "Pokemon",
+      "set": "2016 XY Evolutions",
+      "number": "106",
+      "rarity": "Full Art EX",
+      "prices": {
+        "PSA_9": {"min": 45, "max": 60}
+      },
+      "last_verified": "2026-01",
+      "notes": "Vendu 52 CHF - Jan 2026"
+    },
+    "pokemon_radiant_charizard_vstar_universe_015": {
+      "name": "Radiant Charizard VStar Universe #015",
+      "game": "Pokemon",
+      "set": "2022 SWSH VStar Universe JPN",
+      "number": "015",
+      "rarity": "Radiant Rare",
+      "prices": {
+        "PSA_10": {"min": 70, "max": 85}
+      },
+      "last_verified": "2026-01",
+      "notes": "Vendu 77.50 CHF - Jan 2026"
+    },
+    "soccer_yamal_topps_rc_base": {
+      "name": "Lamine Yamal RC Base Cards",
+      "game": "Soccer",
+      "set": "2023-24 Topps/Panini",
+      "number": "-",
+      "rarity": "Base RC",
+      "prices": {
+        "RAW": {"min": 5, "max": 10}
+      },
+      "last_verified": "2026-01",
+      "notes": "Lot 3 cartes vendu 23 CHF (~8 CHF/carte) - Jan 2026"
+    },
+    "soccer_salah_topps_gold_elite_99": {
+      "name": "Mohamed Salah Topps Gold Elite /99",
+      "game": "Soccer",
+      "set": "Topps Gold",
+      "number": "75/99",
+      "rarity": "Gold Elite /99",
+      "prices": {
+        "RAW": {"min": 2, "max": 5}
+      },
+      "last_verified": "2026-01",
+      "notes": "Vendu 3 CHF - Jan 2026"
+    },
+    "soccer_yamal_messi_topps_now_2025_2": {
+      "name": "Lamine Yamal x Lionel Messi 2025 Topps Now #2",
+      "game": "Soccer",
+      "set": "2025 Topps Now FC Barcelona",
+      "number": "2",
+      "rarity": "Topps Now",
+      "prices": {
+        "PSA_10": {"min": 70, "max": 90}
+      },
+      "last_verified": "2026-01",
+      "notes": "Vendu 80 CHF - Jan 2026"
+    },
+    "soccer_zaire_emery_topps_chrome_pulsar_135": {
+      "name": "Warren Zaire-Emery 2023 Topps Chrome Pulsar RC #135",
+      "game": "Soccer",
+      "set": "2022-23 Topps Chrome UCC",
+      "number": "135",
+      "rarity": "Pulsar Refractor RC",
+      "prices": {
+        "PSA_10": {"min": 20, "max": 30}
+      },
+      "last_verified": "2026-01",
+      "notes": "Vendu 25 CHF - Jan 2026"
+    },
+    "soccer_ronaldo_topps_chrome_ucl_2019_refractor_100": {
+      "name": "Cristiano Ronaldo 2019 Topps Chrome UCL Refractor #100",
+      "game": "Soccer",
+      "set": "2019 Topps Chrome UCL",
+      "number": "100",
+      "rarity": "Refractor",
+      "prices": {
+        "PSA_10": {"min": 70, "max": 90}
+      },
+      "last_verified": "2026-01",
+      "notes": "Vendu 80 CHF - Jan 2026"
+    },
+    "soccer_guler_donruss_rookie_kings_2324_bronze_9": {
+      "name": "Arda Güler 2023-24 Donruss Rookie Kings Bronze #9",
+      "game": "Soccer",
+      "set": "2023-24 Panini Donruss",
+      "number": "9",
+      "rarity": "Rookie Kings Bronze",
+      "prices": {
+        "RAW": {"min": 1, "max": 3}
+      },
+      "last_verified": "2026-01",
+      "notes": "Vendu 1.75 CHF - Jan 2026"
+    },
+    "soccer_brandt_topps_transcendent_2020_auto_75": {
+      "name": "Julian Brandt 2020 Topps Transcendent Auto /75",
+      "game": "Soccer",
+      "set": "2020 Topps Transcendent",
+      "number": "JB",
+      "rarity": "Auto /75",
+      "prices": {
+        "PSA_9": {"min": 35, "max": 45}
+      },
+      "last_verified": "2026-01",
+      "notes": "Vendu 39.95 CHF - Jan 2026"
+    },
+    "nba_curry_revolution_supernova_2018_2": {
+      "name": "Stephen Curry 2018-19 Panini Revolution Supernova #2",
+      "game": "Basketball",
+      "set": "2018-19 Panini Revolution",
+      "number": "2",
+      "rarity": "Supernova",
+      "prices": {
+        "PSA_9": {"min": 20, "max": 30}
+      },
+      "last_verified": "2026-01",
+      "notes": "Vendu 25 CHF - Jan 2026"
+    },
+    "lorcana_beast_enchanted_de2_210": {
+      "name": "Beast 2023 Disney Lorcana DE 2 Enchanted #210",
+      "game": "Disney Lorcana",
+      "set": "Disney Lorcana DE 2",
+      "number": "210",
+      "rarity": "Enchanted",
+      "prices": {
+        "PSA_10": {"min": 40, "max": 55}
+      },
+      "last_verified": "2026-01",
+      "notes": "Vendu 48 CHF - Jan 2026"
+    },
+    "pokemon_mewtwo_gx_hidden_fates_sv59": {
+      "name": "Mewtwo GX Hidden Fates Shiny Vault #SV59",
+      "game": "Pokemon",
+      "set": "2019 Hidden Fates Shiny Vault",
+      "number": "SV59",
+      "rarity": "Shiny GX",
+      "prices": {
+        "PSA_10": {"min": 30, "max": 40}
+      },
+      "last_verified": "2026-03",
+      "notes": "Vendu 35 CHF - Mar 2026"
+    },
+    "pokemon_umbreon_gx_hidden_fates_sv69": {
+      "name": "Umbreon GX Hidden Fates Shiny Vault #SV69",
+      "game": "Pokemon",
+      "set": "2019 Hidden Fates Shiny Vault",
+      "number": "SV69",
+      "rarity": "Shiny GX",
+      "prices": {
+        "PSA_10": {"min": 80, "max": 95}
+      },
+      "last_verified": "2026-03",
+      "notes": "Vendu 86 CHF - Mar 2026"
+    },
+    "pokemon_charizard_gx_hidden_fates_sv49": {
+      "name": "Charizard GX Hidden Fates Shiny Vault #SV49",
+      "game": "Pokemon",
+      "set": "2019 Hidden Fates Shiny Vault",
+      "number": "SV49",
+      "rarity": "Shiny GX",
+      "prices": {
+        "PSA_9": {"min": 70, "max": 90}
+      },
+      "last_verified": "2026-03",
+      "notes": "Vendu 79 CHF - Mar 2026"
+    },
     "pokemon_charizard_base_4": {
       "name": "Charizard Base Set #4",
       "game": "Pokemon",
