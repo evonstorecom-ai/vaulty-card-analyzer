@@ -23,6 +23,16 @@ except ImportError as e:
     print(f"⚠️ Système de prix non disponible: {e}")
     PRICING_AVAILABLE = False
 
+# Import du système de recherche externe (Google Lens, APIs externes)
+try:
+    from external_search import ExternalCardSearch, identify_card_external
+    EXTERNAL_SEARCH_AVAILABLE = True
+    external_searcher = ExternalCardSearch()
+except ImportError as e:
+    print(f"⚠️ Recherche externe non disponible: {e}")
+    EXTERNAL_SEARCH_AVAILABLE = False
+    external_searcher = None
+
 # Configuration
 TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "")
 ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
@@ -209,8 +219,36 @@ def lookup_verified_prices(card_info: dict) -> str | None:
     )
 
 
-async def analyze_card(image_bytes: bytes) -> str:
-    """Analyse une carte via Claude API"""
+async def analyze_card_with_external(image_bytes: bytes) -> tuple:
+    """
+    Analyse hybride: Claude Vision + Recherche externe (Google Lens, APIs).
+    Retourne (result_text, external_data)
+    """
+    external_data = None
+
+    # 1. RECHERCHE EXTERNE EN PREMIER (Google Lens + APIs)
+    if EXTERNAL_SEARCH_AVAILABLE and external_searcher:
+        try:
+            logger.info("🔍 Recherche externe en cours (Google Lens + APIs)...")
+            external_data = await identify_card_external(image_bytes)
+
+            if external_data.get("success"):
+                logger.info(f"✅ Recherche externe réussie: {external_data.get('best_match', {}).get('name', 'N/A')}")
+            else:
+                logger.info("⚠️ Recherche externe: pas de résultat concluant")
+
+        except Exception as e:
+            logger.error(f"Erreur recherche externe: {e}")
+            external_data = {"success": False, "error": str(e)}
+
+    # 2. ANALYSE CLAUDE VISION
+    claude_result = await analyze_card_claude(image_bytes, external_data)
+
+    return claude_result, external_data
+
+
+async def analyze_card_claude(image_bytes: bytes, external_hints: dict = None) -> str:
+    """Analyse via Claude API avec hints externes optionnels"""
     if not ANTHROPIC_API_KEY:
         return """❌ **Erreur de configuration**
 
@@ -225,6 +263,45 @@ Ou contactez-nous pour une expertise manuelle !"""
         image_base64 = base64.standard_b64encode(image_bytes).decode("utf-8")
         client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
 
+        # Enrichir le prompt avec les infos externes si disponibles
+        enhanced_prompt = ANALYSIS_PROMPT
+
+        if external_hints and external_hints.get("success"):
+            best_match = external_hints.get("best_match", {})
+            all_matches = external_hints.get("all_matches", [])
+
+            if best_match.get("name") or all_matches:
+                hints_text = "\n\n🔍 **INDICES DE RECHERCHE EXTERNE** (à vérifier avec l'image):\n"
+
+                if best_match.get("name"):
+                    hints_text += f"- Carte possiblement identifiée: {best_match.get('name')}\n"
+                    if best_match.get("game"):
+                        hints_text += f"- Jeu détecté: {best_match.get('game')}\n"
+                    if best_match.get("set"):
+                        hints_text += f"- Set possible: {best_match.get('set')}\n"
+
+                for match in all_matches[:2]:
+                    if match.get("name"):
+                        hints_text += f"- Match API ({match.get('source')}): {match.get('name')} - {match.get('set', 'N/A')}\n"
+
+                # Ajouter les prix externes trouvés
+                prices = external_hints.get("prices", {})
+                if prices:
+                    hints_text += "\n📊 **Prix de référence externes**:\n"
+                    if "scryfall" in prices:
+                        p = prices["scryfall"]
+                        hints_text += f"- Scryfall: ${p.get('usd', 0)} (normal), ${p.get('usd_foil', 0)} (foil)\n"
+                    if "pokemon_tcg" in prices:
+                        p = prices["pokemon_tcg"]
+                        hints_text += f"- Pokemon TCG: ${p.get('market', p.get('mid', 0))} (market)\n"
+                    if "ebay_sold" in prices:
+                        p = prices["ebay_sold"]
+                        if p.get("avg"):
+                            hints_text += f"- eBay Sold: ${p.get('avg'):.2f} avg (min: ${p.get('min', 0):.2f}, max: ${p.get('max', 0):.2f})\n"
+
+                enhanced_prompt += hints_text
+                enhanced_prompt += "\n⚠️ UTILISE ces indices pour confirmer ton identification, mais base-toi TOUJOURS sur ce que tu vois dans l'image."
+
         message = client.messages.create(
             model=MODEL,
             max_tokens=2048,
@@ -232,19 +309,25 @@ Ou contactez-nous pour une expertise manuelle !"""
                 "role": "user",
                 "content": [
                     {"type": "image", "source": {"type": "base64", "media_type": "image/jpeg", "data": image_base64}},
-                    {"type": "text", "text": ANALYSIS_PROMPT}
+                    {"type": "text", "text": enhanced_prompt}
                 ],
             }],
         )
         return message.content[0].text
     except Exception as e:
-        logger.error(f"Erreur API: {e}")
+        logger.error(f"Erreur API Claude: {e}")
         return f"""❌ **Erreur lors de l'analyse**
 
 Détails: {str(e)}
 
 Réessayez ou visitez notre site pour une expertise manuelle:
 🌐 **vaultyprotocol.tech**"""
+
+
+async def analyze_card(image_bytes: bytes) -> str:
+    """Fonction de compatibilité - utilise le système hybride"""
+    result, _ = await analyze_card_with_external(image_bytes)
+    return result
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Commande /start"""
@@ -506,15 +589,16 @@ Réponse sous 24-48h
     await update.message.reply_text(contact_text, parse_mode="Markdown", reply_markup=InlineKeyboardMarkup(keyboard))
 
 async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Traite les photos"""
+    """Traite les photos avec système hybride (Claude + recherche externe)"""
     user = update.message.from_user
     logger.info(f"Photo reçue de {user.username or user.id}")
 
     waiting = await update.message.reply_text(
         "🔄 **Analyse en cours...**\n\n"
-        "⏳ Identification de la carte\n"
-        "⏳ Évaluation de l'état\n"
-        "⏳ Recherche des prix de marché\n\n"
+        "⏳ Recherche dans les bases de données...\n"
+        "⏳ Identification via Google Lens...\n"
+        "⏳ Analyse IA avancée...\n"
+        "⏳ Vérification des prix de marché...\n\n"
         "_Propulsé par Vaulty Protocol 🇨🇭_",
         parse_mode="Markdown"
     )
@@ -524,7 +608,8 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         photo_file = await photo.get_file()
         image_bytes = await photo_file.download_as_bytearray()
 
-        result = await analyze_card(bytes(image_bytes))
+        # Utiliser le système hybride
+        result, external_data = await analyze_card_with_external(bytes(image_bytes))
         await waiting.delete()
 
         # Extraire les infos de la carte
@@ -550,11 +635,47 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
                 await update.message.reply_text(final_result[i:i+4000], parse_mode="Markdown")
         else:
             await update.message.reply_text(final_result, parse_mode="Markdown")
-        search_urls = generate_search_urls(
-            card_info.get("card_name", ""),
-            card_info.get("set_name", ""),
-            card_info.get("game", "")
-        )
+        # Utiliser les URLs externes si disponibles, sinon générer
+        if external_data and external_data.get("search_urls"):
+            search_urls = external_data["search_urls"]
+            # S'assurer que toutes les clés existent
+            if "ebay_sold" not in search_urls:
+                search_urls["ebay_sold"] = generate_search_urls(
+                    card_info.get("card_name", ""),
+                    card_info.get("set_name", ""),
+                    card_info.get("game", "")
+                )["ebay_sold"]
+        else:
+            search_urls = generate_search_urls(
+                card_info.get("card_name", ""),
+                card_info.get("set_name", ""),
+                card_info.get("game", "")
+            )
+
+        # Construire un message avec les prix externes trouvés
+        external_prices_msg = ""
+        if external_data and external_data.get("prices"):
+            prices = external_data["prices"]
+            external_prices_msg = "\n\n📊 **PRIX VÉRIFIÉS EN LIGNE:**\n"
+
+            if "scryfall" in prices and prices["scryfall"].get("usd"):
+                p = prices["scryfall"]
+                external_prices_msg += f"• Scryfall: **${p.get('usd', 0)}** (foil: ${p.get('usd_foil', 0)})\n"
+
+            if "pokemon_tcg" in prices and prices["pokemon_tcg"].get("market"):
+                p = prices["pokemon_tcg"]
+                external_prices_msg += f"• Pokemon TCG Market: **${p.get('market', 0):.2f}**\n"
+
+            if "ebay_sold" in prices and prices["ebay_sold"].get("avg"):
+                p = prices["ebay_sold"]
+                external_prices_msg += f"• eBay Sold: **${p.get('avg', 0):.2f}** (range: ${p.get('min', 0):.2f} - ${p.get('max', 0):.2f})\n"
+
+            if external_prices_msg == "\n\n📊 **PRIX VÉRIFIÉS EN LIGNE:**\n":
+                external_prices_msg = ""  # Aucun prix trouvé
+
+        # Ajouter les prix externes au résultat final si disponibles
+        if external_prices_msg:
+            final_result = final_result + external_prices_msg
 
         # Message avec liens et nom de la carte
         card_display = card_info.get("card_name", "cette carte")
