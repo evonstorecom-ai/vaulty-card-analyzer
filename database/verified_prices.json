@@ -421,6 +421,54 @@
       "last_verified": "2025-01",
       "notes": "1st Edition Ultra Rare"
     },
+    "pokemon_eevee_vmax_climax_210": {
+      "name": "Eevee VMAX Climax #210",
+      "game": "Pokemon",
+      "set": "2021 SWSH VMAX Climax JPN",
+      "number": "210/184",
+      "rarity": "Character Rare",
+      "prices": {
+        "PSA_10": {"min": 38, "max": 55}
+      },
+      "last_verified": "2026-01",
+      "notes": "Vendu 45.40 CHF - Jan 2026"
+    },
+    "pokemon_charizard_legendary_collection_3": {
+      "name": "Charizard Legendary Collection #3",
+      "game": "Pokemon",
+      "set": "2002 Legendary Collection",
+      "number": "3/110",
+      "rarity": "Holo Rare",
+      "prices": {
+        "PSA_3": {"min": 110, "max": 150}
+      },
+      "last_verified": "2026-01",
+      "notes": "Vendu 129 CHF - Jan 2026"
+    },
+    "nba_edwards_court_kings_2020_rc_70": {
+      "name": "Anthony Edwards 2020-21 Court Kings RC #70",
+      "game": "Basketball",
+      "set": "2020-21 Panini Court Kings",
+      "number": "70",
+      "rarity": "Base RC",
+      "prices": {
+        "PSA_10": {"min": 55, "max": 80}
+      },
+      "last_verified": "2026-01",
+      "notes": "Vendu 69.50 CHF - Jan 2026"
+    },
+    "soccer_anelka_topps_real_madrid_auto_250": {
+      "name": "Nicolas Anelka 2024-25 Topps Real Madrid Auto /250",
+      "game": "Soccer",
+      "set": "2024-25 Topps Real Madrid Team Set",
+      "number": "76/250",
+      "rarity": "Auto /250",
+      "prices": {
+        "RAW": {"min": 20, "max": 35}
+      },
+      "last_verified": "2026-01",
+      "notes": "Vendu 25 CHF - Jan 2026"
+    },
     "pokemon_galarian_articuno_vstar_universe_182": {
       "name": "Galarian Articuno VStar Universe #182",
       "game": "Pokemon",
