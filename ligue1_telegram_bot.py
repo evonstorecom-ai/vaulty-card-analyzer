@@ -403,7 +403,10 @@ async def _analyze_team(update: Update, team_query: str, message=None):
     # Coach en temps réel si disponible
     coach_name = live_data.get("coach", {}).get("name") or team["coach"]
     data_source = lineup.get("data_source", "static")
-    source_label = "📡 Données temps réel" if data_source == "live" else "📋 Données de base"
+    if data_source == "live":
+        source_label = "📡 Données temps réel"
+    else:
+        source_label = "⚠️ Données de base (effectifs possiblement obsolètes)"
 
     # Info équipe
     info_text = (

@@ -68,6 +68,8 @@ class Ligue1Predictor:
             )
 
         # --- MODE FALLBACK : données statiques ---
+        # ⚠ Les données statiques peuvent être obsolètes.
+        # Lancez: python update_squads.py pour mettre à jour depuis API-Football
         formation = preferred_formation or team["default_xi"]["formation"]
         formation_slots = self._get_formation_slots(formation)
 
@@ -99,6 +101,7 @@ class Ligue1Predictor:
             "unavailable_injuries": injuries,
             "unavailable_suspensions": suspensions,
             "data_source": "static",
+            "warning": "Données statiques - lancez 'python update_squads.py' pour mettre à jour les effectifs depuis API-Football",
         }
 
     def _predict_from_live_data(
