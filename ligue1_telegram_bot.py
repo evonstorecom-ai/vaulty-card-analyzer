@@ -741,7 +741,9 @@ def main():
         print("📥 Mise à jour des effectifs depuis API-Football...")
         try:
             fetcher = Ligue1DataFetcher()
-            count = asyncio.get_event_loop().run_until_complete(fetcher.refresh_all_squads())
+            loop = asyncio.new_event_loop()
+            count = loop.run_until_complete(fetcher.refresh_all_squads())
+            loop.close()
             if count > 0:
                 print(f"   ✅ {count} équipe(s) mise(s) à jour avec les effectifs réels")
             else:
