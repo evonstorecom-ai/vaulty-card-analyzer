@@ -476,6 +476,75 @@ class Ligue1DataFetcher:
 
         return lineups_list
 
+    async def fetch_league_team_ids(self) -> dict[str, int]:
+        """
+        Récupère les vrais IDs des équipes Ligue 1 depuis l'API.
+        Retourne un dict {nom_normalisé: team_id}.
+        """
+        data = await self._api_football_request("teams", {
+            "league": LIGUE1_LEAGUE_ID,
+            "season": CURRENT_SEASON,
+        })
+
+        if "error" in data or not data.get("response"):
+            return {}
+
+        team_ids = {}
+        for entry in data["response"]:
+            team = entry.get("team", {})
+            name = team.get("name", "")
+            tid = team.get("id")
+            if name and tid:
+                team_ids[name.lower()] = tid
+        return team_ids
+
+    async def _auto_fix_team_ids(self):
+        """
+        Récupère les IDs réels de l'API et met à jour LIGUE1_TEAMS en mémoire.
+        Fait une correspondance par nom d'équipe (fuzzy matching basique).
+        """
+        from ligue1_teams import LIGUE1_TEAMS
+
+        api_teams = await self.fetch_league_team_ids()
+        if not api_teams:
+            return
+
+        # Correspondances manuelles: clé LIGUE1_TEAMS -> sous-chaîne dans le nom API
+        name_map = {
+            "psg": "paris saint",
+            "om": "marseille",
+            "monaco": "monaco",
+            "lille": "lille",
+            "lens": "lens",
+            "ol": "lyon",
+            "nice": "nice",
+            "rennes": "rennes",
+            "toulouse": "toulouse",
+            "brest": "brest",
+            "strasbourg": "strasbourg",
+            "nantes": "nantes",
+            "angers": "angers",
+            "auxerre": "auxerre",
+            "le_havre": "havre",
+            "lorient": "lorient",
+            "paris_fc": "paris fc",
+            "metz": "metz",
+            # Fallback pour futures promotions
+            "montpellier": "montpellier",
+            "saint_etienne": "saint-etienne",
+            "reims": "reims",
+        }
+
+        for team_key, team_data in LIGUE1_TEAMS.items():
+            search_term = name_map.get(team_key, team_key.replace("_", " "))
+            for api_name, api_id in api_teams.items():
+                if search_term in api_name:
+                    old_id = team_data.get("api_football_id")
+                    if old_id != api_id:
+                        print(f"   🔄 {team_data.get('name', team_key)}: ID {old_id} → {api_id}")
+                        team_data["api_football_id"] = api_id
+                    break
+
     async def get_current_squad(self, team_id: int) -> list[dict]:
         """
         Récupère l'effectif actuel d'une équipe depuis API-Football.
@@ -649,6 +718,9 @@ class Ligue1DataFetcher:
 
         if not self.api_football_key:
             return 0
+
+        # D'abord, corriger automatiquement les IDs depuis l'API
+        await self._auto_fix_team_ids()
 
         updated = 0
         pos_map = {
