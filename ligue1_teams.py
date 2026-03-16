@@ -524,7 +524,7 @@ LIGUE1_TEAMS = {
         "city": "Angers",
         "stadium": "Stade Raymond Kopa",
         "coach": "Alexandre Dujeux",
-        "api_football_id": 82,
+        "api_football_id": 77,
         "preferred_formations": ["4-4-2", "3-5-2"],
         "style": "Solidité défensive, bloc bas, contre-attaques",
         "squad": {
@@ -562,7 +562,7 @@ LIGUE1_TEAMS = {
         "city": "Auxerre",
         "stadium": "Stade de l'Abbé-Deschamps",
         "coach": "Christophe Pélissier",
-        "api_football_id": 97,
+        "api_football_id": 78,
         "preferred_formations": ["4-2-3-1", "4-4-2"],
         "style": "Jeu direct, solidité défensive, transitions",
         "squad": {
@@ -640,7 +640,7 @@ LIGUE1_TEAMS = {
         "city": "Lorient",
         "stadium": "Stade du Moustoir",
         "coach": "Olivier Pantaloni",
-        "api_football_id": 97,
+        "api_football_id": 114,
         "preferred_formations": ["4-2-3-1", "3-5-2"],
         "style": "Jeu organisé, pressing moyen, transitions efficaces",
         "squad": {
@@ -679,7 +679,7 @@ LIGUE1_TEAMS = {
         "city": "Paris",
         "stadium": "Stade Charléty",
         "coach": "Thierry Laurey",
-        "api_football_id": 174,
+        "api_football_id": 327,
         "preferred_formations": ["4-3-3", "4-4-2"],
         "style": "Jeu collectif, discipline tactique, transitions",
         "squad": {
