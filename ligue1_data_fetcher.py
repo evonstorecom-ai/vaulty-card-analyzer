@@ -637,6 +637,96 @@ class Ligue1DataFetcher:
             "coach": results[6] if not isinstance(results[6], Exception) else {},
         }
 
+    async def refresh_all_squads(self) -> int:
+        """
+        Met à jour les effectifs de TOUTES les équipes Ligue 1 en mémoire
+        depuis API-Football. Appelé automatiquement au démarrage du bot.
+
+        Modifie directement LIGUE1_TEAMS en mémoire (pas le fichier).
+        Retourne le nombre d'équipes mises à jour.
+        """
+        from ligue1_teams import LIGUE1_TEAMS
+
+        if not self.api_football_key:
+            return 0
+
+        updated = 0
+        pos_map = {
+            "Goalkeeper": "GK",
+            "Defender": "DEF",
+            "Midfielder": "MID",
+            "Attacker": "FWD",
+        }
+        detail_pos = {
+            "Goalkeeper": None,
+            "Defender": "DC",
+            "Midfielder": "MC",
+            "Attacker": "BU",
+        }
+
+        for team_key, team_data in LIGUE1_TEAMS.items():
+            team_id = team_data.get("api_football_id")
+            if not team_id:
+                continue
+
+            try:
+                # Récupérer effectif + coach en parallèle
+                squad_raw, coach_data = await asyncio.gather(
+                    self.get_current_squad(team_id),
+                    self.get_coach(team_id),
+                    return_exceptions=True,
+                )
+
+                if isinstance(squad_raw, Exception) or not squad_raw:
+                    continue
+
+                # Réorganiser par poste
+                new_squad = {"GK": [], "DEF": [], "MID": [], "FWD": []}
+                for player in squad_raw:
+                    api_pos = player.get("position", "Midfielder")
+                    group = pos_map.get(api_pos, "MID")
+                    p = {
+                        "name": player["name"],
+                        "number": player.get("number", 0),
+                        "rating": 75,
+                        "age": player.get("age", 0),
+                    }
+                    if group != "GK":
+                        p["position"] = detail_pos.get(api_pos, "MC")
+                    new_squad[group].append(p)
+
+                # Mettre à jour l'effectif en mémoire
+                team_data["squad"] = new_squad
+
+                # Mettre à jour le coach
+                if not isinstance(coach_data, Exception) and coach_data:
+                    coach_name = coach_data.get("name", "")
+                    if coach_name:
+                        team_data["coach"] = coach_name
+
+                # Reconstruire le default_xi avec les nouveaux joueurs
+                formation = team_data.get("preferred_formations", ["4-3-3"])[0]
+                formation_limits = self._get_formation_limits(formation)
+                xi = []
+                for group in ["GK", "DEF", "MID", "FWD"]:
+                    players = new_squad.get(group, [])
+                    count = formation_limits.get(group, 0)
+                    for p in players[:count]:
+                        name = p["name"]
+                        parts = name.split()
+                        xi.append(parts[-1] if len(parts) > 1 else name)
+
+                team_data["default_xi"] = {"formation": formation, "lineup": xi}
+                updated += 1
+
+            except Exception:
+                continue
+
+            # Petite pause pour le rate limit
+            await asyncio.sleep(0.5)
+
+        return updated
+
     async def scrape_injuries_free(self, team_name: str) -> list[dict]:
         """
         Scrape les blessures depuis des sources gratuites (sportsgambler, betinf).

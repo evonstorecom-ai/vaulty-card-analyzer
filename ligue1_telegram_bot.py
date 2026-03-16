@@ -736,6 +736,20 @@ def main():
 
     app = Application.builder().token(TELEGRAM_BOT_TOKEN).build()
 
+    # Mise à jour automatique des effectifs au démarrage
+    if os.getenv("API_FOOTBALL_KEY"):
+        print("📥 Mise à jour des effectifs depuis API-Football...")
+        try:
+            fetcher = Ligue1DataFetcher()
+            count = asyncio.get_event_loop().run_until_complete(fetcher.refresh_all_squads())
+            if count > 0:
+                print(f"   ✅ {count} équipe(s) mise(s) à jour avec les effectifs réels")
+            else:
+                print("   ⚠️ Aucune équipe mise à jour (vérifiez la clé API)")
+        except Exception as e:
+            print(f"   ⚠️ Erreur mise à jour effectifs: {e}")
+            print("   Le bot continue avec les données de base")
+
     # Commandes
     app.add_handler(CommandHandler("start", cmd_start))
     app.add_handler(CommandHandler("aide", cmd_aide))
