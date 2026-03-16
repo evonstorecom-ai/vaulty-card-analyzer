@@ -384,9 +384,9 @@ async def _analyze_team(update: Update, team_query: str, message=None):
     target = message or update.message
     await target.reply_text("⏳ Analyse en cours...", parse_mode=ParseMode.HTML)
 
-    # Récupérer données live
+    # Récupérer données live (v2 avec compositions réelles)
     team_id = team.get("api_football_id", 0)
-    live_data = await fetcher.get_all_team_data(team_id, team["full_name"])
+    live_data = await fetcher.get_all_team_data_v2(team_id, team["full_name"])
 
     injuries = []
     suspensions = []
@@ -397,17 +397,23 @@ async def _analyze_team(update: Update, team_query: str, message=None):
         else:
             injuries.append(inj["player_name"])
 
-    # Prédire la composition
-    lineup = predictor.predict_lineup(team_key, injuries, suspensions)
+    # Prédire la composition (avec données live si disponibles)
+    lineup = predictor.predict_lineup(team_key, injuries, suspensions, live_data=live_data)
+
+    # Coach en temps réel si disponible
+    coach_name = live_data.get("coach", {}).get("name") or team["coach"]
+    data_source = lineup.get("data_source", "static")
+    source_label = "📡 Données temps réel" if data_source == "live" else "📋 Données de base"
 
     # Info équipe
     info_text = (
         f"🏟 <b>{team['full_name']}</b>\n"
         f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
-        f"👔 Coach: <b>{team['coach']}</b>\n"
+        f"👔 Coach: <b>{coach_name}</b>\n"
         f"🏟 Stade: {team['stadium']}, {team['city']}\n"
         f"📐 Formations: {' / '.join(team['preferred_formations'])}\n"
         f"🎯 Style: <i>{team['style']}</i>\n"
+        f"{source_label}\n"
     )
     await target.reply_text(info_text, parse_mode=ParseMode.HTML)
 
@@ -500,10 +506,10 @@ async def _analyze_match(update: Update, home_query: str, away_query: str, messa
         parse_mode=ParseMode.HTML,
     )
 
-    # Récupérer données live
+    # Récupérer données live (v2 avec compositions réelles)
     home_data, away_data = await asyncio.gather(
-        fetcher.get_all_team_data(home_team["api_football_id"], home_team["full_name"]),
-        fetcher.get_all_team_data(away_team["api_football_id"], away_team["full_name"]),
+        fetcher.get_all_team_data_v2(home_team["api_football_id"], home_team["full_name"]),
+        fetcher.get_all_team_data_v2(away_team["api_football_id"], away_team["full_name"]),
     )
 
     home_injuries, home_suspensions = _extract_unavailable(home_data)
@@ -512,12 +518,14 @@ async def _analyze_match(update: Update, home_query: str, away_query: str, messa
     home_form = home_data.get("stats", {}).get("form", "")
     away_form = away_data.get("stats", {}).get("form", "")
 
-    # Analyse
+    # Analyse avec données live
     analysis = predictor.generate_match_analysis(
         home_key, away_key,
         home_injuries, away_injuries,
         home_suspensions, away_suspensions,
         home_form, away_form,
+        home_live_data=home_data,
+        away_live_data=away_data,
     )
 
     # 1. En-tête match

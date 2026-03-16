@@ -30,15 +30,21 @@ class Ligue1Predictor:
         injuries: list[str] = None,
         suspensions: list[str] = None,
         preferred_formation: str = None,
+        live_data: dict = None,
     ) -> dict:
         """
         Prédit le 11 de départ d'une équipe.
+
+        Si live_data contient des compositions récentes (lineup_analysis),
+        celles-ci sont utilisées en priorité pour une prédiction réaliste.
+        Sinon, fallback sur les données statiques de ligue1_teams.py.
 
         Args:
             team_key: Clé de l'équipe dans LIGUE1_TEAMS
             injuries: Liste des noms de joueurs blessés
             suspensions: Liste des noms de joueurs suspendus
             preferred_formation: Formation à utiliser (sinon celle par défaut)
+            live_data: Données temps réel (de get_all_team_data_v2)
 
         Returns:
             Dict avec la formation, le 11 titulaire et les remplaçants
@@ -51,12 +57,20 @@ class Ligue1Predictor:
         suspensions = suspensions or []
         unavailable = set(name.lower() for name in injuries + suspensions)
 
-        formation = preferred_formation or team["default_xi"]["formation"]
+        # --- MODE TEMPS RÉEL : utiliser les vraies compositions récentes ---
+        lineup_analysis = (live_data or {}).get("lineup_analysis", {})
+        live_coach = (live_data or {}).get("coach", {})
 
-        # Positions requises selon la formation
+        if lineup_analysis and lineup_analysis.get("probable_xi"):
+            return self._predict_from_live_data(
+                team, lineup_analysis, live_coach, unavailable,
+                injuries, suspensions, preferred_formation
+            )
+
+        # --- MODE FALLBACK : données statiques ---
+        formation = preferred_formation or team["default_xi"]["formation"]
         formation_slots = self._get_formation_slots(formation)
 
-        # Sélectionner les joueurs disponibles par poste
         squad = team["squad"]
         available = {}
         for pos_group, players in squad.items():
@@ -65,10 +79,8 @@ class Ligue1Predictor:
                 if p["name"].lower() not in unavailable
             ]
 
-        # Construire le 11
         lineup = self._select_best_xi(available, formation_slots, team["default_xi"]["lineup"], unavailable)
 
-        # Remplaçants
         starters_names = set(p["name"] for p in lineup)
         bench = []
         for pos_group, players in squad.items():
@@ -86,6 +98,75 @@ class Ligue1Predictor:
             "bench": bench,
             "unavailable_injuries": injuries,
             "unavailable_suspensions": suspensions,
+            "data_source": "static",
+        }
+
+    def _predict_from_live_data(
+        self,
+        team: dict,
+        lineup_analysis: dict,
+        live_coach: dict,
+        unavailable: set,
+        injuries: list[str],
+        suspensions: list[str],
+        preferred_formation: str = None,
+    ) -> dict:
+        """
+        Prédit le XI à partir des vraies compositions récentes (API-Football).
+        Les joueurs qui ont le plus titularisé récemment sont prioritaires.
+        """
+        formation = preferred_formation or lineup_analysis.get("formation", "4-3-3")
+        coach_name = live_coach.get("name") or lineup_analysis.get("coach", team["coach"])
+
+        probable_xi = lineup_analysis.get("probable_xi", [])
+        matches_analyzed = lineup_analysis.get("total_matches_analyzed", 0)
+
+        # Filtrer les indisponibles
+        lineup = []
+        for player in probable_xi:
+            if player["name"].lower() not in unavailable:
+                lineup.append({
+                    "name": player["name"],
+                    "number": player.get("number", 0),
+                    "position_group": player.get("position_group", "MID"),
+                    "rating": 80,  # Rating par défaut, sera enrichi si dispo dans la base statique
+                    "starts": player.get("starts", 0),
+                    "total_matches": player.get("total_matches", matches_analyzed),
+                })
+
+        # Enrichir les ratings depuis la base statique si possible
+        static_players = {}
+        for pos_group, players in team.get("squad", {}).items():
+            for p in players:
+                static_players[p["name"].lower()] = p
+
+        for player in lineup:
+            static = static_players.get(player["name"].lower())
+            if static:
+                player["rating"] = static.get("rating", 80)
+                if "position" in static:
+                    player["position"] = static["position"]
+
+        # Construire le banc
+        lineup_names = set(p["name"].lower() for p in lineup)
+        bench = []
+        for pos_group, players in team.get("squad", {}).items():
+            for p in players:
+                if p["name"].lower() not in lineup_names and p["name"].lower() not in unavailable:
+                    bench.append(p)
+        bench = sorted(bench, key=lambda x: x["rating"], reverse=True)[:7]
+
+        return {
+            "formation": formation,
+            "coach": coach_name,
+            "team_name": team["full_name"],
+            "style": team["style"],
+            "lineup": lineup,
+            "bench": bench,
+            "unavailable_injuries": injuries,
+            "unavailable_suspensions": suspensions,
+            "data_source": "live",
+            "matches_analyzed": matches_analyzed,
         }
 
     def _get_formation_slots(self, formation: str) -> dict:
@@ -314,16 +395,20 @@ class Ligue1Predictor:
         away_suspensions: list[str] = None,
         home_form: str = "",
         away_form: str = "",
+        home_live_data: dict = None,
+        away_live_data: dict = None,
     ) -> dict:
         """
         Génère une analyse complète d'un match avec compositions et prédictions.
+        Si des données live sont fournies, elles sont utilisées pour des prédictions
+        basées sur les vraies compositions récentes.
         """
         home_unavailable = (home_injuries or []) + (home_suspensions or [])
         away_unavailable = (away_injuries or []) + (away_suspensions or [])
 
-        # Prédire les compositions
-        home_lineup = self.predict_lineup(home_key, home_injuries, home_suspensions)
-        away_lineup = self.predict_lineup(away_key, away_injuries, away_suspensions)
+        # Prédire les compositions (avec données live si disponibles)
+        home_lineup = self.predict_lineup(home_key, home_injuries, home_suspensions, live_data=home_live_data)
+        away_lineup = self.predict_lineup(away_key, away_injuries, away_suspensions, live_data=away_live_data)
 
         # Prédire le résultat
         result = self.predict_match_result(

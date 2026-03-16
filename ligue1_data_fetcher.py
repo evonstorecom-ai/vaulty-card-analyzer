@@ -409,6 +409,234 @@ class Ligue1DataFetcher:
 
         return best
 
+    async def get_last_lineups(self, team_id: int, count: int = 3) -> list[dict]:
+        """
+        Récupère les vraies compositions des derniers matchs joués.
+        C'est LA source la plus fiable pour prédire le prochain XI.
+        """
+        # D'abord récupérer les derniers matchs joués
+        fixtures_data = await self._api_football_request("fixtures", {
+            "league": LIGUE1_LEAGUE_ID,
+            "season": CURRENT_SEASON,
+            "team": team_id,
+            "last": count,
+        })
+
+        if "error" in fixtures_data:
+            return []
+
+        lineups_list = []
+        fixture_ids = [
+            item["fixture"]["id"]
+            for item in fixtures_data.get("response", [])
+            if item.get("fixture", {}).get("id")
+        ]
+
+        # Récupérer les compositions de chaque match
+        for fixture_id in fixture_ids:
+            lineup_data = await self._api_football_request("fixtures/lineups", {
+                "fixture": fixture_id,
+            })
+
+            if "error" in lineup_data:
+                continue
+
+            for team_lineup in lineup_data.get("response", []):
+                if team_lineup.get("team", {}).get("id") == team_id:
+                    coach = team_lineup.get("coach", {})
+                    formation = team_lineup.get("formation", "4-3-3")
+                    starters = []
+                    subs = []
+
+                    for player in team_lineup.get("startXI", []):
+                        p = player.get("player", {})
+                        starters.append({
+                            "name": p.get("name", ""),
+                            "number": p.get("number", 0),
+                            "pos": p.get("pos", ""),  # G, D, M, F
+                            "grid": p.get("grid", ""),
+                        })
+
+                    for player in team_lineup.get("substitutes", []):
+                        p = player.get("player", {})
+                        subs.append({
+                            "name": p.get("name", ""),
+                            "number": p.get("number", 0),
+                            "pos": p.get("pos", ""),
+                        })
+
+                    lineups_list.append({
+                        "fixture_id": fixture_id,
+                        "coach": coach.get("name", ""),
+                        "formation": formation,
+                        "starters": starters,
+                        "substitutes": subs,
+                    })
+                    break
+
+        return lineups_list
+
+    async def get_current_squad(self, team_id: int) -> list[dict]:
+        """
+        Récupère l'effectif actuel d'une équipe depuis API-Football.
+        Inclut les joueurs avec leur poste et numéro.
+        """
+        data = await self._api_football_request("players/squads", {
+            "team": team_id,
+        })
+
+        if "error" in data:
+            return []
+
+        squad = []
+        for team_data in data.get("response", []):
+            for player in team_data.get("players", []):
+                squad.append({
+                    "name": player.get("name", ""),
+                    "age": player.get("age", 0),
+                    "number": player.get("number", 0),
+                    "position": player.get("position", ""),  # Goalkeeper, Defender, Midfielder, Attacker
+                    "photo": player.get("photo", ""),
+                })
+        return squad
+
+    async def get_coach(self, team_id: int) -> dict:
+        """Récupère l'entraîneur actuel d'une équipe."""
+        data = await self._api_football_request("coachs", {
+            "team": team_id,
+        })
+
+        if "error" in data:
+            return {}
+
+        # Le dernier coach dans la liste est le coach actuel
+        for coach in data.get("response", []):
+            career = coach.get("career", [])
+            for stint in career:
+                if stint.get("team", {}).get("id") == team_id and stint.get("end") is None:
+                    return {
+                        "name": coach.get("name", ""),
+                        "nationality": coach.get("nationality", ""),
+                        "photo": coach.get("photo", ""),
+                    }
+        return {}
+
+    def analyze_recent_lineups(self, lineups: list[dict]) -> dict:
+        """
+        Analyse les dernières compositions réelles pour identifier les titulaires réguliers.
+        Retourne un XI probable basé sur la fréquence de titularisation.
+
+        Args:
+            lineups: Liste des compos des derniers matchs (de get_last_lineups)
+
+        Returns:
+            Dict avec formation probable, titulaires fréquents, coach
+        """
+        if not lineups:
+            return {}
+
+        # Compter les apparitions de chaque joueur comme titulaire
+        player_counts = {}
+        formation_counts = {}
+        coach_name = lineups[0].get("coach", "")
+
+        for lineup in lineups:
+            formation = lineup.get("formation", "4-3-3")
+            formation_counts[formation] = formation_counts.get(formation, 0) + 1
+
+            for starter in lineup.get("starters", []):
+                name = starter["name"]
+                pos = starter.get("pos", "")
+                if name not in player_counts:
+                    player_counts[name] = {
+                        "name": name,
+                        "count": 0,
+                        "pos": pos,
+                        "number": starter.get("number", 0),
+                    }
+                player_counts[name]["count"] += 1
+
+        # Formation la plus utilisée
+        best_formation = max(formation_counts, key=formation_counts.get) if formation_counts else "4-3-3"
+
+        # Trier les joueurs par fréquence de titularisation
+        all_players = sorted(player_counts.values(), key=lambda x: x["count"], reverse=True)
+
+        # Mapper les positions API-Football vers nos groupes
+        pos_map = {"G": "GK", "D": "DEF", "M": "MID", "F": "FWD"}
+
+        # Sélectionner le XI le plus probable
+        probable_xi = []
+        pos_limits = self._get_formation_limits(best_formation)
+
+        filled = {"GK": 0, "DEF": 0, "MID": 0, "FWD": 0}
+        for player in all_players:
+            group = pos_map.get(player["pos"], "MID")
+            if filled.get(group, 0) < pos_limits.get(group, 0):
+                probable_xi.append({
+                    "name": player["name"],
+                    "number": player["number"],
+                    "position_group": group,
+                    "starts": player["count"],
+                    "total_matches": len(lineups),
+                })
+                filled[group] = filled.get(group, 0) + 1
+
+            if sum(filled.values()) >= 11:
+                break
+
+        return {
+            "formation": best_formation,
+            "coach": coach_name,
+            "probable_xi": probable_xi,
+            "total_matches_analyzed": len(lineups),
+        }
+
+    def _get_formation_limits(self, formation: str) -> dict:
+        """Retourne les limites par poste pour une formation."""
+        formations = {
+            "4-3-3": {"GK": 1, "DEF": 4, "MID": 3, "FWD": 3},
+            "4-4-2": {"GK": 1, "DEF": 4, "MID": 4, "FWD": 2},
+            "4-2-3-1": {"GK": 1, "DEF": 4, "MID": 5, "FWD": 1},
+            "3-4-3": {"GK": 1, "DEF": 3, "MID": 4, "FWD": 3},
+            "3-5-2": {"GK": 1, "DEF": 3, "MID": 5, "FWD": 2},
+            "3-4-2-1": {"GK": 1, "DEF": 3, "MID": 6, "FWD": 1},
+            "5-3-2": {"GK": 1, "DEF": 5, "MID": 3, "FWD": 2},
+            "4-5-1": {"GK": 1, "DEF": 4, "MID": 5, "FWD": 1},
+            "4-1-4-1": {"GK": 1, "DEF": 4, "MID": 5, "FWD": 1},
+        }
+        return formations.get(formation, {"GK": 1, "DEF": 4, "MID": 3, "FWD": 3})
+
+    async def get_all_team_data_v2(self, team_id: int, team_name: str) -> dict:
+        """
+        Version améliorée : récupère TOUTES les données incluant les vraies compos.
+        C'est cette méthode qui doit être appelée pour des prédictions fiables.
+        """
+        tasks = [
+            self.get_injuries(team_id),
+            self.get_team_stats(team_id),
+            self.get_next_fixtures(team_id),
+            self.get_last_results(team_id),
+            self.get_last_lineups(team_id, count=5),
+            self.get_current_squad(team_id),
+            self.get_coach(team_id),
+        ]
+
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+
+        lineups = results[4] if not isinstance(results[4], Exception) else []
+
+        return {
+            "injuries": results[0] if not isinstance(results[0], Exception) else [],
+            "stats": results[1] if not isinstance(results[1], Exception) else {},
+            "next_fixtures": results[2] if not isinstance(results[2], Exception) else [],
+            "last_results": results[3] if not isinstance(results[3], Exception) else [],
+            "last_lineups": lineups,
+            "lineup_analysis": self.analyze_recent_lineups(lineups),
+            "current_squad": results[5] if not isinstance(results[5], Exception) else [],
+            "coach": results[6] if not isinstance(results[6], Exception) else {},
+        }
+
     async def scrape_injuries_free(self, team_name: str) -> list[dict]:
         """
         Scrape les blessures depuis des sources gratuites (sportsgambler, betinf).
