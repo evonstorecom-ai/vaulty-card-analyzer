@@ -22,6 +22,18 @@ import os
 import asyncio
 import logging
 from datetime import datetime
+from pathlib import Path
+
+# Charger .env si présent
+_env_file = Path(__file__).parent / ".env"
+if _env_file.exists():
+    for line in _env_file.read_text().splitlines():
+        line = line.strip()
+        if line and not line.startswith("#") and "=" in line:
+            key, _, value = line.partition("=")
+            key, value = key.strip(), value.strip()
+            if value and value not in ("", "votre_token_ici"):
+                os.environ.setdefault(key, value)
 
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
