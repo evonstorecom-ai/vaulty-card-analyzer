@@ -237,41 +237,43 @@ LIGUE1_TEAMS = {
         "short_name": "OL",
         "city": "Lyon",
         "stadium": "Groupama Stadium",
-        "coach": "Paulo Fonseca",
+        "coach": "Pierre Sage",
         "api_football_id": 80,
         "preferred_formations": ["4-3-3", "4-2-3-1"],
         "style": "Possession offensive, construction depuis l'arrière, pressing haut",
         "squad": {
             "GK": [
-                {"name": "Anthony Lopes", "number": 1, "rating": 78, "age": 35},
+                {"name": "Lucas Perri", "number": 1, "rating": 79, "age": 27},
+                {"name": "Rémy Descamps", "number": 30, "rating": 73, "age": 29},
             ],
             "DEF": [
-                {"name": "Clinton Mata", "number": 2, "rating": 77, "position": "DD", "age": 32},
-                {"name": "Moussa Niakhaté", "number": 3, "rating": 79, "position": "DC", "age": 29},
+                {"name": "Clinton Mata", "number": 2, "rating": 77, "position": "DD", "age": 33},
+                {"name": "Moussa Niakhaté", "number": 3, "rating": 79, "position": "DC", "age": 30},
                 {"name": "Duje Caleta-Car", "number": 15, "rating": 78, "position": "DC", "age": 30},
-                {"name": "Abner", "number": 6, "rating": 78, "position": "DG", "age": 25},
-                {"name": "Nicolas Tagliafico", "number": 23, "rating": 77, "position": "DG", "age": 33},
+                {"name": "Abner", "number": 6, "rating": 78, "position": "DG", "age": 26},
+                {"name": "Ainsley Maitland-Niles", "number": 22, "rating": 75, "position": "DD", "age": 28},
             ],
             "MID": [
                 {"name": "Corentin Tolisso", "number": 8, "rating": 79, "position": "MC", "age": 32},
-                {"name": "Maxence Caqueret", "number": 7, "rating": 79, "position": "MC", "age": 25},
-                {"name": "Nemanja Matic", "number": 10, "rating": 77, "position": "MC", "age": 38},
-                {"name": "Tyler Morton", "number": 17, "rating": 78, "position": "MC", "age": 23},
+                {"name": "Maxence Caqueret", "number": 7, "rating": 79, "position": "MC", "age": 26},
+                {"name": "Jordan Veretout", "number": 17, "rating": 78, "position": "MC", "age": 33},
+                {"name": "Orel Mangala", "number": 28, "rating": 77, "position": "MC", "age": 27},
+                {"name": "Saïd Benrahma", "number": 10, "rating": 78, "position": "MOC", "age": 30},
             ],
             "FWD": [
-                {"name": "Alexandre Lacazette", "number": 91, "rating": 79, "position": "BU", "age": 35},
-                {"name": "Ernest Nuamah", "number": 11, "rating": 77, "position": "AD", "age": 21},
-                {"name": "Malick Fofana", "number": 19, "rating": 80, "position": "AG", "age": 20},
-                {"name": "Gift Orban", "number": 14, "rating": 76, "position": "BU", "age": 23},
+                {"name": "Georges Mikautadze", "number": 69, "rating": 80, "position": "BU", "age": 24},
+                {"name": "Malick Fofana", "number": 19, "rating": 81, "position": "AG", "age": 21},
+                {"name": "Ernest Nuamah", "number": 11, "rating": 77, "position": "AD", "age": 22},
+                {"name": "Gift Orban", "number": 14, "rating": 76, "position": "BU", "age": 24},
             ],
         },
         "default_xi": {
             "formation": "4-3-3",
             "lineup": [
-                "Lopes",
-                "Mata", "Caleta-Car", "Niakhaté", "Tagliafico",
-                "Caqueret", "Tyler Morton", "Tolisso",
-                "Nuamah", "Lacazette", "Fofana"
+                "Perri",
+                "Mata", "Caleta-Car", "Niakhaté", "Abner",
+                "Caqueret", "Tolisso", "Benrahma",
+                "Nuamah", "Mikautadze", "Fofana"
             ]
         }
     },
