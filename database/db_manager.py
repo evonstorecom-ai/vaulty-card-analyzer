@@ -59,9 +59,44 @@ def find_card_exact(card_id: str) -> dict | None:
     return db.get("cards", {}).get(card_id)
 
 
+def extract_key_names(text: str) -> set:
+    """
+    Extrait les noms importants (joueurs, personnages, marques)
+    pour un matching plus robuste
+    """
+    if not text:
+        return set()
+
+    text_lower = text.lower()
+
+    # Mots à ignorer (articles, prépositions, génériques)
+    stop_words = {
+        'the', 'a', 'an', 'of', 'from', 'in', 'at', 'to', 'for', 'and', 'or',
+        'de', 'du', 'la', 'le', 'les', 'des', 'un', 'une',
+        'base', 'set', 'card', 'cards', 'karte', 'karten',
+        'rc', 'rookie', 'auto', 'psa', 'bgs', 'cgc', 'sgc',
+        'holo', 'rare', 'common', 'uncommon',
+        '2019', '2020', '2021', '2022', '2023', '2024', '2025', '2026',
+        'japan', 'japanese', 'english', 'german', 'french'
+    }
+
+    # Séparer par espaces et caractères spéciaux
+    words = re.split(r'[\s\-_#/,\.()]+', text_lower)
+
+    # Garder les mots significatifs (longueur > 2, pas un stop word)
+    key_names = set()
+    for word in words:
+        word = word.strip()
+        if len(word) > 2 and word not in stop_words and not word.isdigit():
+            key_names.add(word)
+
+    return key_names
+
+
 def find_card_fuzzy(game: str, card_name: str, set_name: str = "", number: str = "") -> tuple[dict | None, float]:
     """
-    Recherche floue d'une carte
+    Recherche floue d'une carte avec matching amélioré
+    Focus sur le nom du joueur/personnage (plus fiable que le set/année)
     Retourne (carte_trouvée, score_similarité)
     """
     db = load_database()
@@ -74,39 +109,77 @@ def find_card_fuzzy(game: str, card_name: str, set_name: str = "", number: str =
     card_lower = card_name.lower() if card_name else ""
     set_lower = set_name.lower() if set_name else ""
 
+    # Extraire les mots-clés de la recherche
+    search_keywords = extract_key_names(card_name)
+    search_keywords.update(extract_key_names(set_name))
+
     for card_id, card_data in cards.items():
         score = 0.0
 
-        # Match sur le jeu
+        # Match sur le jeu/catégorie (0.15 max)
         db_game = card_data.get("game", "").lower()
         if game_lower and db_game:
             if game_lower in db_game or db_game in game_lower:
-                score += 0.2
+                score += 0.15
+            # Match partiel (soccer/football)
+            elif any(g in game_lower for g in ['soccer', 'football', 'foot']) and \
+                 any(g in db_game for g in ['soccer', 'football']):
+                score += 0.15
 
-        # Match sur le nom de la carte
+        # Match sur le nom (0.55 max) - POIDS LE PLUS IMPORTANT
         db_name = card_data.get("name", "").lower()
-        if card_lower and db_name:
-            name_sim = SequenceMatcher(None, card_lower, db_name).ratio()
-            score += name_sim * 0.5
+        db_keywords = extract_key_names(db_name)
 
-        # Match sur le set
+        if card_lower and db_name:
+            # 1. Match exact de mots-clés (noms de joueurs)
+            common_keywords = search_keywords & db_keywords
+            if common_keywords:
+                keyword_score = min(len(common_keywords) * 0.2, 0.4)
+                score += keyword_score
+
+            # 2. Match par similarité de séquence (complément)
+            name_sim = SequenceMatcher(None, card_lower, db_name).ratio()
+            score += name_sim * 0.15
+
+            # 3. Bonus si nom du joueur/personnage contenu exactement
+            for keyword in search_keywords:
+                if len(keyword) > 3 and keyword in db_name:
+                    score += 0.15
+                    break
+
+        # Match sur le set (0.15 max) - POIDS RÉDUIT (souvent mal identifié par l'IA)
         db_set = card_data.get("set", "").lower()
         if set_lower and db_set:
-            set_sim = SequenceMatcher(None, set_lower, db_set).ratio()
-            score += set_sim * 0.2
+            # Match de marque (Topps, Panini, etc.)
+            brands = ['topps', 'panini', 'prizm', 'chrome', 'fleer', 'upper deck',
+                     'hidden fates', 'base set', 'crown zenith', 'lorcana',
+                     'obsidian', 'select', 'mosaic', 'optic', 'donruss']
+            for brand in brands:
+                if brand in set_lower and brand in db_set:
+                    score += 0.1
+                    break
 
-        # Match sur le numéro
+            # Match de similarité (faible poids)
+            set_sim = SequenceMatcher(None, set_lower, db_set).ratio()
+            score += set_sim * 0.05
+
+        # Match sur le numéro (0.1 max)
         db_number = card_data.get("number", "").lower()
         if number and db_number:
-            if number.lower() in db_number or db_number in number.lower():
-                score += 0.1
+            number_clean = number.lower().replace("#", "").strip()
+            db_number_clean = db_number.replace("#", "").strip()
+            if number_clean and db_number_clean:
+                if number_clean == db_number_clean:
+                    score += 0.1
+                elif number_clean in db_number_clean or db_number_clean in number_clean:
+                    score += 0.05
 
         if score > best_score:
             best_score = score
             best_match = card_data
 
-    # Seuil minimum de 0.5 pour retourner un résultat
-    if best_score >= 0.5:
+    # Seuil minimum de 0.4 pour retourner un résultat (abaissé pour plus de flexibilité)
+    if best_score >= 0.4:
         return best_match, best_score
 
     return None, 0.0
