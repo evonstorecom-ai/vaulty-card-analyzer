@@ -221,15 +221,59 @@ def lookup_verified_prices(card_info: dict) -> str | None:
 
 async def analyze_card_with_external(image_bytes: bytes) -> tuple:
     """
-    Analyse hybride: Claude Vision + Recherche externe (Google Lens, APIs).
-    Retourne (result_text, external_data)
+    Analyse hybride avec PRIORITÉ BDD VAULTY:
+    1. Claude Vision (identification rapide)
+    2. BDD Vaulty en PREMIER (prix vérifiés)
+    3. Recherche web SEULEMENT si pas de match BDD
+    Retourne (result_text, external_data, bdd_match)
     """
     external_data = None
+    bdd_match = None
+    bdd_confidence = 0
 
-    # 1. RECHERCHE EXTERNE EN PREMIER (Google Lens + APIs)
-    if EXTERNAL_SEARCH_AVAILABLE and external_searcher:
+    # 1. CLAUDE VISION D'ABORD (identification)
+    logger.info("👁️ Analyse Vision IA en cours...")
+    claude_result = await analyze_card_claude(image_bytes, None)
+
+    # 2. EXTRAIRE INFOS ET CHERCHER DANS BDD VAULTY
+    if PRICING_AVAILABLE:
+        card_info = extract_card_info(claude_result)
+        logger.info(f"📋 Carte identifiée: {card_info.get('card_name', 'N/A')} - {card_info.get('set_name', 'N/A')}")
+
+        # Chercher correspondance exacte ou fuzzy dans la BDD
+        if card_info.get("card_name") or card_info.get("set_name"):
+            try:
+                # D'abord essai exact
+                card_id = db_manager.normalize_id(
+                    f"{card_info.get('game', '')}_{card_info.get('card_name', '')}_{card_info.get('set_name', '')}_{card_info.get('number', '')}"
+                )
+                exact_match = db_manager.find_card_exact(card_id)
+
+                if exact_match:
+                    bdd_match = exact_match
+                    bdd_confidence = 0.95
+                    logger.info(f"✅ Match EXACT trouvé dans BDD Vaulty: {card_id}")
+                else:
+                    # Sinon fuzzy matching
+                    fuzzy_result = db_manager.find_card_fuzzy(
+                        game=card_info.get("game", ""),
+                        card_name=card_info.get("card_name", ""),
+                        set_name=card_info.get("set_name", ""),
+                        number=card_info.get("number", "")
+                    )
+                    if fuzzy_result and fuzzy_result[1] >= 0.5:  # Score minimum 0.5
+                        bdd_match = fuzzy_result[0]
+                        bdd_confidence = fuzzy_result[1]
+                        logger.info(f"✅ Match FUZZY trouvé (score: {bdd_confidence:.2f})")
+                    else:
+                        logger.info("⚠️ Pas de correspondance dans BDD Vaulty")
+            except Exception as e:
+                logger.error(f"Erreur recherche BDD: {e}")
+
+    # 3. RECHERCHE EXTERNE SEULEMENT SI PAS DE MATCH BDD (ou score faible)
+    if bdd_confidence < 0.6 and EXTERNAL_SEARCH_AVAILABLE and external_searcher:
         try:
-            logger.info("🔍 Recherche externe en cours (Google Lens + APIs)...")
+            logger.info("🔍 Pas de match BDD → Recherche externe (Google Lens + APIs)...")
             external_data = await identify_card_external(image_bytes)
 
             if external_data.get("success"):
@@ -240,11 +284,10 @@ async def analyze_card_with_external(image_bytes: bytes) -> tuple:
         except Exception as e:
             logger.error(f"Erreur recherche externe: {e}")
             external_data = {"success": False, "error": str(e)}
+    else:
+        logger.info("✅ Match BDD trouvé → Recherche externe ignorée (plus rapide)")
 
-    # 2. ANALYSE CLAUDE VISION
-    claude_result = await analyze_card_claude(image_bytes, external_data)
-
-    return claude_result, external_data
+    return claude_result, external_data, bdd_match, bdd_confidence
 
 
 async def analyze_card_claude(image_bytes: bytes, external_hints: dict = None) -> str:
@@ -326,7 +369,7 @@ Réessayez ou visitez notre site pour une expertise manuelle:
 
 async def analyze_card(image_bytes: bytes) -> str:
     """Fonction de compatibilité - utilise le système hybride"""
-    result, _ = await analyze_card_with_external(image_bytes)
+    result, _, _, _ = await analyze_card_with_external(image_bytes)
     return result
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -589,17 +632,17 @@ Réponse sous 24-48h
     await update.message.reply_text(contact_text, parse_mode="Markdown", reply_markup=InlineKeyboardMarkup(keyboard))
 
 async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Traite les photos avec système hybride (Claude + recherche externe)"""
+    """Traite les photos avec PRIORITÉ BDD VAULTY"""
     user = update.message.from_user
     logger.info(f"Photo reçue de {user.username or user.id}")
 
     waiting = await update.message.reply_text(
-        "🔄 **Analyse en cours...**\n\n"
-        "⏳ Recherche dans les bases de données...\n"
-        "⏳ Identification via Google Lens...\n"
-        "⏳ Analyse IA avancée...\n"
-        "⏳ Vérification des prix de marché...\n\n"
-        "_Propulsé par Vaulty Protocol 🇨🇭_",
+        "🔮 **VAULTY CARD ANALYZER**\n"
+        "━━━━━━━━━━━━━━━━━━━━\n\n"
+        "⏳ [1/3] Identification IA...\n"
+        "⏳ [2/3] Base de données Vaulty...\n"
+        "⏳ [3/3] Vérification marché...\n\n"
+        "_Patiente 10-20 secondes_",
         parse_mode="Markdown"
     )
 
@@ -608,26 +651,64 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         photo_file = await photo.get_file()
         image_bytes = await photo_file.download_as_bytearray()
 
-        # Utiliser le système hybride
-        result, external_data = await analyze_card_with_external(bytes(image_bytes))
+        # NOUVEAU WORKFLOW: BDD PRIORITAIRE
+        result, external_data, bdd_match, bdd_confidence = await analyze_card_with_external(bytes(image_bytes))
         await waiting.delete()
 
         # Extraire les infos de la carte
         card_info = extract_card_info(result)
 
-        # Rechercher les prix vérifiés dans la base
-        verified_prices_msg = lookup_verified_prices(card_info)
+        # Construire le message final selon la source des prix
+        if bdd_match and bdd_confidence >= 0.5:
+            # MATCH BDD TROUVÉ → Prix vérifiés (haute confiance)
+            confidence_pct = int(bdd_confidence * 100)
+            prices = bdd_match.get("prices", {})
 
-        # Construire le message final
-        if verified_prices_msg:
-            # Retirer la section prix de Claude (estimations) et remplacer par prix vérifiés
-            # On garde l'identification et l'évaluation de l'état
-            final_result = result
-            # Ajouter les prix vérifiés à la fin
-            final_result = final_result + "\n\n" + verified_prices_msg
+            price_section = f"\n\n💰 **PRIX BDD VAULTY** (confiance {confidence_pct}%)\n"
+            price_section += "━━━━━━━━━━━━━━━━━━━━\n"
+
+            if prices.get("RAW"):
+                p = prices["RAW"]
+                price_section += f"• RAW: **{p.get('min', 0)}-{p.get('max', 0)} CHF**\n"
+            if prices.get("PSA_8"):
+                p = prices["PSA_8"]
+                price_section += f"• PSA 8: **{p.get('min', 0)}-{p.get('max', 0)} CHF**\n"
+            if prices.get("PSA_9"):
+                p = prices["PSA_9"]
+                price_section += f"• PSA 9: **{p.get('min', 0)}-{p.get('max', 0)} CHF**\n"
+            if prices.get("PSA_10"):
+                p = prices["PSA_10"]
+                price_section += f"• PSA 10: **{p.get('min', 0)}-{p.get('max', 0)} CHF**\n"
+
+            price_section += f"\n📊 _Basé sur ventes vérifiées Vaulty_"
+            final_result = result + price_section
+
+        elif external_data and external_data.get("prices"):
+            # PAS DE MATCH BDD → Prix externes (confiance moyenne)
+            prices = external_data["prices"]
+            price_section = "\n\n💰 **ESTIMATION MARCHÉ** (confiance ~60%)\n"
+            price_section += "━━━━━━━━━━━━━━━━━━━━\n"
+
+            if "ebay_sold" in prices and prices["ebay_sold"].get("avg"):
+                p = prices["ebay_sold"]
+                price_section += f"• eBay Sold: **${p.get('avg', 0):.0f}** (${p.get('min', 0):.0f}-${p.get('max', 0):.0f})\n"
+            if "scryfall" in prices and prices["scryfall"].get("usd"):
+                p = prices["scryfall"]
+                price_section += f"• Scryfall: **${p.get('usd', 0)}**\n"
+            if "pokemon_tcg" in prices and prices["pokemon_tcg"].get("market"):
+                p = prices["pokemon_tcg"]
+                price_section += f"• TCG Market: **${p.get('market', 0):.2f}**\n"
+
+            price_section += "\n⚠️ _Prix non vérifiés - Consultez eBay Sold_"
+            final_result = result + price_section
+
         else:
-            # Pas de prix vérifié, ajouter un avertissement
-            final_result = result + "\n\n⚠️ _Prix non vérifiés - Consultez eBay Sold pour les prix réels_"
+            # AUCUN PRIX TROUVÉ
+            verified_prices_msg = lookup_verified_prices(card_info)
+            if verified_prices_msg:
+                final_result = result + "\n\n" + verified_prices_msg
+            else:
+                final_result = result + "\n\n⚠️ _Prix non disponibles - Consultez eBay Sold pour les prix réels_"
 
         # Envoyer résultat
         if len(final_result) > 4000:
