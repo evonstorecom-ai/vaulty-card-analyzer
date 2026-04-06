@@ -14,6 +14,13 @@ from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, MessageHandler, ContextTypes, filters
 import anthropic
 
+# Import Google Sheets BDD (optionnel - fonctionne sans si pas configuré)
+try:
+    from vaulty_database_sheets import search_in_database, add_to_database, get_stats
+    SHEETS_ENABLED = bool(os.environ.get("GOOGLE_SHEET_ID"))
+except ImportError:
+    SHEETS_ENABLED = False
+
 # Import du système de prix
 try:
     from database import db_manager
@@ -36,6 +43,7 @@ except ImportError as e:
 # Configuration
 TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "")
 ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
+ADMIN_IDS = [int(x) for x in os.environ.get("ADMIN_TELEGRAM_IDS", "").split(",") if x.strip()]
 MODEL = "claude-sonnet-4-20250514"
 
 # Admin IDs (séparés par des virgules dans la variable d'environnement)
@@ -631,6 +639,44 @@ Réponse sous 24-48h
     ]
     await update.message.reply_text(contact_text, parse_mode="Markdown", reply_markup=InlineKeyboardMarkup(keyboard))
 
+async def stats_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Commande /stats (admin uniquement)"""
+    user_id = update.message.from_user.id
+    if ADMIN_IDS and user_id not in ADMIN_IDS:
+        await update.message.reply_text("🔒 Commande réservée aux admins.")
+        return
+
+    if not SHEETS_ENABLED:
+        await update.message.reply_text(
+            "⚠️ Google Sheets non configuré.\n"
+            "Ajoutez GOOGLE_SHEET_ID et GOOGLE_CREDENTIALS_JSON dans Railway."
+        )
+        return
+
+    try:
+        stats = get_stats()
+        if stats.get("total", 0) == 0:
+            await update.message.reply_text("📊 Aucune donnée dans la base.")
+            return
+
+        top = "\n".join(f"  • {s} : {n}" for s, n in list(stats["sports"].items())[:5])
+
+        await update.message.reply_text(
+            f"📊 **STATISTIQUES BDD VAULTY**\n\n"
+            f"📦 Total cartes : **{stats['total']}**\n"
+            f"💰 Prix moyen : **{stats['avg_price']:.0f} CHF**\n"
+            f"📈 Plus chère : **{stats['max_price']:.0f} CHF**\n"
+            f"📉 Moins chère : **{stats['min_price']:.0f} CHF**\n"
+            f"💵 Chiffre d'affaires : **{stats['total_sales']:.0f} CHF**\n\n"
+            f"**Top sports/jeux :**\n{top}\n\n"
+            f"📅 Dernière vente : {stats['last_sale']}\n"
+            f"🔗 [Voir le Google Sheet]({stats['sheet_url']})",
+            parse_mode="Markdown",
+        )
+    except Exception as e:
+        logger.error(f"Erreur stats: {e}")
+        await update.message.reply_text(f"❌ Erreur: {str(e)}")
+
 async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Traite les photos avec PRIORITÉ BDD VAULTY"""
     user = update.message.from_user
@@ -657,6 +703,26 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
 
         # Extraire les infos de la carte
         card_info = extract_card_info(result)
+
+        # Rechercher les ventes similaires dans la BDD Google Sheets
+        if SHEETS_ENABLED:
+            try:
+                db_matches = search_in_database({
+                    "player_name": card_info.get("card_name", ""),
+                    "card_set": card_info.get("set_name", ""),
+                })
+                if db_matches:
+                    bdd_text = "📚 **VENTES VAULTY SIMILAIRES**\n━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
+                    for m in db_matches[:3]:
+                        grade_txt = f" {m.get('grading_company', '')} {m.get('grade', '')}".strip()
+                        bdd_text += (
+                            f"• **{m.get('player_name', '?')}**{grade_txt}\n"
+                            f"  💰 {m.get('sale_price', '?')} {m.get('currency', 'CHF')} — {m.get('sale_date', '?')}\n\n"
+                        )
+                    bdd_text += "━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+                    await update.message.reply_text(bdd_text, parse_mode="Markdown")
+            except Exception as e:
+                logger.error(f"Erreur recherche BDD: {e}")
 
         # Construire le message final selon la source des prix
         if bdd_match and bdd_confidence >= 0.5:
@@ -1158,7 +1224,11 @@ def main() -> None:
         print("⚠️ ANTHROPIC_API_KEY non configuré!")
 
     print("🎴 Vaulty Card Analyzer - Bot Telegram")
-    print("🇨🇭 Version Française avec Promotion")
+    print("🇨🇭 Version Française avec Promotion + Google Sheets BDD")
+    if SHEETS_ENABLED:
+        print("📊 Google Sheets: ✅ Configuré")
+    else:
+        print("📊 Google Sheets: ⚠️ Non configuré (fonctionnement sans BDD)")
     print("✅ Démarrage...")
 
     app = Application.builder().token(TELEGRAM_BOT_TOKEN).build()
@@ -1173,6 +1243,7 @@ def main() -> None:
     app.add_handler(CommandHandler("verifier", verifier_command))
     app.add_handler(CommandHandler("verify", verifier_command))
     app.add_handler(CommandHandler("contact", contact_command))
+    app.add_handler(CommandHandler("stats", stats_command))
 
     # Commandes admin (prix vérifiés)
     app.add_handler(CommandHandler("adminhelp", adminhelp_command))
