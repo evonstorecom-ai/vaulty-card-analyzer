@@ -1,0 +1,223 @@
+{
+  "_metadata": {
+    "version": "1.0.0",
+    "last_updated": "2024-10-01",
+    "description": "Verified card prices from eBay Sold and PSA APR"
+  },
+  "cards": {
+    "2003_topps_rookie_matrix_wade_james_bosh": {
+      "name": "2003-04 Topps Rookie Matrix Wade/James/Bosh #WJB",
+      "year": 2003,
+      "set": "Topps Rookie Matrix",
+      "card_number": "WJB",
+      "players": ["Dwyane Wade", "LeBron James", "Chris Bosh"],
+      "category": "Basketball",
+      "type": "triple_rookie",
+      "is_rookie": true,
+      "prices": {
+        "PSA 10": {"min": 800, "max": 1500, "avg": 1100, "last_verified": "2024-10"},
+        "PSA 9": {"min": 100, "max": 200, "avg": 150, "last_verified": "2024-10"},
+        "PSA 8": {"min": 50, "max": 100, "avg": 75, "last_verified": "2024-10"},
+        "PSA 7": {"min": 30, "max": 60, "avg": 45, "last_verified": "2024-10"},
+        "RAW": {"min": 15, "max": 40, "avg": 25, "last_verified": "2024-10"}
+      },
+      "population": {"10": 245, "9": 1200, "8": 800, "7": 500},
+      "confidence": 0.90,
+      "source": "eBay Sold + PSA APR",
+      "notes": "Multi-player rookie card featuring the 2003 draft class"
+    },
+
+    "1986_fleer_michael_jordan_57": {
+      "name": "1986-87 Fleer Michael Jordan RC #57",
+      "year": 1986,
+      "set": "Fleer",
+      "card_number": "57",
+      "players": ["Michael Jordan"],
+      "category": "Basketball",
+      "type": "base_rookie",
+      "is_rookie": true,
+      "prices": {
+        "PSA 10": {"min": 400000, "max": 600000, "avg": 500000, "last_verified": "2024-10"},
+        "PSA 9": {"min": 15000, "max": 25000, "avg": 20000, "last_verified": "2024-10"},
+        "PSA 8": {"min": 4000, "max": 7000, "avg": 5500, "last_verified": "2024-10"},
+        "PSA 7": {"min": 1500, "max": 2500, "avg": 2000, "last_verified": "2024-10"},
+        "PSA 6": {"min": 800, "max": 1200, "avg": 1000, "last_verified": "2024-10"},
+        "RAW": {"min": 500, "max": 1500, "avg": 1000, "last_verified": "2024-10"}
+      },
+      "population": {"10": 316, "9": 2100, "8": 4500, "7": 3200},
+      "confidence": 0.95,
+      "source": "PSA APR + Heritage Auctions",
+      "notes": "The holy grail of modern basketball cards"
+    },
+
+    "2003_topps_chrome_lebron_james_111": {
+      "name": "2003-04 Topps Chrome LeBron James RC #111",
+      "year": 2003,
+      "set": "Topps Chrome",
+      "card_number": "111",
+      "players": ["LeBron James"],
+      "category": "Basketball",
+      "type": "chrome_rookie",
+      "is_rookie": true,
+      "prices": {
+        "PSA 10": {"min": 25000, "max": 40000, "avg": 32000, "last_verified": "2024-10"},
+        "PSA 9": {"min": 2000, "max": 3500, "avg": 2700, "last_verified": "2024-10"},
+        "PSA 8": {"min": 800, "max": 1200, "avg": 1000, "last_verified": "2024-10"},
+        "RAW": {"min": 300, "max": 600, "avg": 450, "last_verified": "2024-10"}
+      },
+      "population": {"10": 1250, "9": 5800, "8": 3200},
+      "confidence": 0.92,
+      "source": "eBay Sold + PWCC",
+      "notes": "Key LeBron rookie card"
+    },
+
+    "2018_panini_prizm_luka_doncic_280": {
+      "name": "2018-19 Panini Prizm Luka Doncic RC #280",
+      "year": 2018,
+      "set": "Panini Prizm",
+      "card_number": "280",
+      "players": ["Luka Doncic"],
+      "category": "Basketball",
+      "type": "base_rookie",
+      "is_rookie": true,
+      "prices": {
+        "PSA 10": {"min": 350, "max": 500, "avg": 425, "last_verified": "2024-10"},
+        "PSA 9": {"min": 50, "max": 80, "avg": 65, "last_verified": "2024-10"},
+        "PSA 8": {"min": 25, "max": 40, "avg": 32, "last_verified": "2024-10"},
+        "RAW": {"min": 15, "max": 30, "avg": 22, "last_verified": "2024-10"}
+      },
+      "population": {"10": 12500, "9": 8200, "8": 2100},
+      "confidence": 0.90,
+      "source": "eBay Sold",
+      "notes": "High pop modern rookie"
+    },
+
+    "2018_panini_prizm_luka_doncic_silver": {
+      "name": "2018-19 Panini Prizm Luka Doncic Silver RC #280",
+      "year": 2018,
+      "set": "Panini Prizm",
+      "card_number": "280",
+      "players": ["Luka Doncic"],
+      "category": "Basketball",
+      "type": "silver_parallel_rookie",
+      "is_rookie": true,
+      "prices": {
+        "PSA 10": {"min": 1200, "max": 1800, "avg": 1500, "last_verified": "2024-10"},
+        "PSA 9": {"min": 300, "max": 450, "avg": 375, "last_verified": "2024-10"},
+        "PSA 8": {"min": 150, "max": 250, "avg": 200, "last_verified": "2024-10"},
+        "RAW": {"min": 80, "max": 150, "avg": 115, "last_verified": "2024-10"}
+      },
+      "population": {"10": 3200, "9": 2100, "8": 600},
+      "confidence": 0.88,
+      "source": "eBay Sold",
+      "notes": "Popular silver prizm parallel"
+    },
+
+    "1999_pokemon_base_charizard_4": {
+      "name": "1999 Pokemon Base Set Charizard Holo #4",
+      "year": 1999,
+      "set": "Base Set",
+      "card_number": "4",
+      "players": ["Charizard"],
+      "category": "Pokemon",
+      "type": "holo",
+      "is_rookie": false,
+      "prices": {
+        "PSA 10": {"min": 5000, "max": 8000, "avg": 6500, "last_verified": "2024-10"},
+        "PSA 9": {"min": 800, "max": 1200, "avg": 1000, "last_verified": "2024-10"},
+        "PSA 8": {"min": 300, "max": 500, "avg": 400, "last_verified": "2024-10"},
+        "PSA 7": {"min": 150, "max": 250, "avg": 200, "last_verified": "2024-10"},
+        "RAW": {"min": 100, "max": 300, "avg": 200, "last_verified": "2024-10"}
+      },
+      "population": {"10": 2800, "9": 8500, "8": 6200},
+      "confidence": 0.90,
+      "source": "eBay Sold + PSA APR",
+      "notes": "Unlimited base set version"
+    },
+
+    "1999_pokemon_base_1st_charizard_4": {
+      "name": "1999 Pokemon Base Set 1st Edition Charizard Holo #4",
+      "year": 1999,
+      "set": "Base Set 1st Edition",
+      "card_number": "4",
+      "players": ["Charizard"],
+      "category": "Pokemon",
+      "type": "holo_1st_edition",
+      "is_rookie": false,
+      "prices": {
+        "PSA 10": {"min": 300000, "max": 420000, "avg": 360000, "last_verified": "2024-10"},
+        "PSA 9": {"min": 40000, "max": 60000, "avg": 50000, "last_verified": "2024-10"},
+        "PSA 8": {"min": 15000, "max": 22000, "avg": 18000, "last_verified": "2024-10"},
+        "PSA 7": {"min": 8000, "max": 12000, "avg": 10000, "last_verified": "2024-10"},
+        "RAW": {"min": 5000, "max": 15000, "avg": 10000, "last_verified": "2024-10"}
+      },
+      "population": {"10": 121, "9": 1100, "8": 1500},
+      "confidence": 0.92,
+      "source": "Heritage Auctions + PWCC",
+      "notes": "Holy grail of Pokemon cards"
+    },
+
+    "2020_panini_prizm_justin_herbert_325": {
+      "name": "2020 Panini Prizm Justin Herbert RC #325",
+      "year": 2020,
+      "set": "Panini Prizm",
+      "card_number": "325",
+      "players": ["Justin Herbert"],
+      "category": "Football",
+      "type": "base_rookie",
+      "is_rookie": true,
+      "prices": {
+        "PSA 10": {"min": 80, "max": 120, "avg": 100, "last_verified": "2024-10"},
+        "PSA 9": {"min": 20, "max": 35, "avg": 27, "last_verified": "2024-10"},
+        "PSA 8": {"min": 10, "max": 18, "avg": 14, "last_verified": "2024-10"},
+        "RAW": {"min": 5, "max": 12, "avg": 8, "last_verified": "2024-10"}
+      },
+      "population": {"10": 18500, "9": 9200, "8": 2100},
+      "confidence": 0.88,
+      "source": "eBay Sold",
+      "notes": "High volume modern football rookie"
+    },
+
+    "2000_playoff_contenders_tom_brady_144": {
+      "name": "2000 Playoff Contenders Tom Brady RC Auto #144",
+      "year": 2000,
+      "set": "Playoff Contenders",
+      "card_number": "144",
+      "players": ["Tom Brady"],
+      "category": "Football",
+      "type": "auto_rookie",
+      "is_rookie": true,
+      "prices": {
+        "PSA 10": {"min": 800000, "max": 1200000, "avg": 1000000, "last_verified": "2024-10"},
+        "PSA 9": {"min": 150000, "max": 250000, "avg": 200000, "last_verified": "2024-10"},
+        "PSA 8": {"min": 60000, "max": 100000, "avg": 80000, "last_verified": "2024-10"},
+        "BGS 9.5": {"min": 300000, "max": 450000, "avg": 375000, "last_verified": "2024-10"}
+      },
+      "population": {"10": 30, "9": 85, "8": 120},
+      "confidence": 0.90,
+      "source": "Heritage Auctions + Goldin",
+      "notes": "The most valuable football card"
+    },
+
+    "2019_panini_mosaic_zion_williamson_209": {
+      "name": "2019-20 Panini Mosaic Zion Williamson RC #209",
+      "year": 2019,
+      "set": "Panini Mosaic",
+      "card_number": "209",
+      "players": ["Zion Williamson"],
+      "category": "Basketball",
+      "type": "base_rookie",
+      "is_rookie": true,
+      "prices": {
+        "PSA 10": {"min": 80, "max": 120, "avg": 100, "last_verified": "2024-10"},
+        "PSA 9": {"min": 15, "max": 25, "avg": 20, "last_verified": "2024-10"},
+        "PSA 8": {"min": 8, "max": 15, "avg": 12, "last_verified": "2024-10"},
+        "RAW": {"min": 3, "max": 8, "avg": 5, "last_verified": "2024-10"}
+      },
+      "population": {"10": 25000, "9": 12000, "8": 3500},
+      "confidence": 0.85,
+      "source": "eBay Sold",
+      "notes": "High pop, price declined due to injuries"
+    }
+  }
+}
